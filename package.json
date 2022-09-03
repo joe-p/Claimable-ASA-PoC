@@ -18,7 +18,7 @@
     "@types/react-dom": "^18.0.6",
     "@walletconnect/client": "^1.7.8",
     "algorand-walletconnect-qrcode-modal": "^1.7.4",
-    "algosdk": "^1.18.0",
+    "algosdk": "^1.19.1",
     "crypto-browserify": "^3.12.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -28,10 +28,10 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start": "react-app-rewired start",
+    "build": "react-app-rewired build",
+    "test": "react-app-rewired test",
+    "eject": "react-app-rewired eject"
   },
   "eslintConfig": {
     "extends": [
@@ -50,5 +50,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "process": "^0.11.10",
+    "react-app-rewired": "^2.2.1"
   }
 }

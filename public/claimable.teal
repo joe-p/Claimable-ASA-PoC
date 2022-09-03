@@ -1,0 +1,58 @@
+#pragma version 6
+
+// Only allow axfers
+txn TypeEnum
+int axfer
+==
+assert
+
+// Don't allow rekeys
+txn RekeyTo
+global ZeroAddress
+==
+assert
+
+// Don't allow ALGO closing
+txn CloseRemainderTo
+global ZeroAddress
+==
+assert
+
+// Ensure fee is zero (use fee pooling to cover)
+txn Fee
+int 0
+==
+
+// Ensure amount is zero
+txn AssetAmount
+int 0
+==
+assert
+
+// Check if claiming
+txn AssetCloseTo
+addr $RECEIVER_ADDRESS
+==
+txn AssetReceiver
+addr $RECEIVER_ADDRESS
+==
+&&
+
+// Check if opting-in
+txn AssetCloseTo
+global ZeroAddress
+==
+assert //tmp
+txn AssetReceiver
+txn Sender
+==
+assert //tmp
+int 1
+&&
+
+// Ensure we are claiming OR opting in
+||
+assert
+
+int 1 
+return

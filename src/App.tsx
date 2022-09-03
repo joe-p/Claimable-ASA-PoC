@@ -11,6 +11,9 @@ import {
   Typography,
 } from "@mui/material"
 import { DataGrid, GridColDef, GridSelectionModel } from "@mui/x-data-grid"
+import algosdk from 'algosdk'
+import {sendASA} from './functions'
+import MyAlgoConnect from "@randlabs/myalgo-connect"
 
 function App() {
   const [claimablesAccount, setClaimablesAccount] = useState(
@@ -56,6 +59,25 @@ function App() {
     },
   ]
 
+  async function connectWallet() {
+    
+    const server = 'http://testnet-api.algonode.network'
+    const token = ''
+    const algodClient = new algosdk.Algodv2(token, server, 80)
+
+    
+    const myAlgo = new MyAlgoConnect({ disableLedgerNano: false })
+
+    const settings = {
+      shouldSelectOneAccount: true,
+      openManager: true
+    }
+
+    const account = (await myAlgo.connect(settings))[0]
+  
+    await sendASA(algodClient, myAlgo, 10458941, 1, account.address, 'KKPWL6OFVUFOAVQGGURJ2EGNZYZZDPEQ37CHEFLLIAFYTCVLP7UZPSV3ME')
+  }
+
   return (
     <div>
       <AppBar position="sticky" color="inherit" sx={{ mb: 2 }}>
@@ -63,7 +85,7 @@ function App() {
           <Typography variant="h4" sx={{ flexGrow: 1 }}>
             Claimables Demo
           </Typography>
-          <Button variant="contained">KKPW...V3ME</Button>
+          <Button variant="contained" onClick={connectWallet}>KKPW...V3ME</Button>
         </Toolbar>
       </AppBar>
       <Container maxWidth="md">
