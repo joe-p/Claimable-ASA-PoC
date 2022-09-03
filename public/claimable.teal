@@ -22,6 +22,7 @@ assert
 txn Fee
 int 0
 ==
+assert
 
 // Ensure amount is zero
 txn AssetAmount
@@ -42,12 +43,9 @@ addr $RECEIVER_ADDRESS
 txn AssetCloseTo
 global ZeroAddress
 ==
-assert //tmp
 txn AssetReceiver
 txn Sender
 ==
-assert //tmp
-int 1
 &&
 
 // Ensure we are claiming OR opting in
