@@ -13,7 +13,7 @@ import {
 import { DataGrid, GridColDef, GridSelectionModel } from "@mui/x-data-grid"
 import { ellipseAddress } from "./lib/utilities"
 import MyAlgoConnect from "@randlabs/myalgo-connect"
-import { apiGetAccountAssets, IAssetData } from "./lib/api"
+import { apiGetAccountAssets, IAssetData, getClaimableLogicSig, sendASA, claimASA } from "./lib/api"
 
 function App() {
   const [myAlgoConnector, setMyAlgoConnector] = useState(new MyAlgoConnect())
@@ -61,10 +61,21 @@ function App() {
         shouldSelectOneAccount: true,
         openManager: false,
       })
+      const claimablesAddr = (await getClaimableLogicSig(accounts[0].address)).address()
+
       setConnectedAccount(accounts[0].address)
+      setClaimablesAccount(claimablesAddr)
     } catch (err) {
       console.error(err)
     }
+  }
+
+  const signAndSend = async () => {
+    await sendASA(myAlgoConnector, 10458941, 1, connectedAccount, 'SFAUNX7AIXKTWGDEKAHY762U2H4PR66CTKFKQDL3XKDNG3VSDCIGWQ57KA')
+  }
+
+  const signAndClaim = async () => {
+    await claimASA(myAlgoConnector, 10458941, connectedAccount)
   }
 
   // async function myAlgoSignTransactions() {
@@ -97,6 +108,17 @@ function App() {
       getAssets()
     }
   }, [connectedAccount])
+
+  useEffect(() => {
+    const getClaimableAssets = async () => {
+      console.log('IN CLAIMABLE ASSETS')
+      const assets = await apiGetAccountAssets(claimablesAccount)
+      setClaimableAssets(assets)
+    }
+    if (claimablesAccount) {
+      getClaimableAssets()
+    }
+  }, [claimablesAccount])
 
   return (
     <div>
@@ -141,7 +163,7 @@ function App() {
             })
           )}
         </Typography> */}
-        <Button variant="outlined" sx={{ my: 1 }}>
+        <Button variant="outlined" onClick={signAndClaim} sx={{ my: 1 }}>
           Claim
         </Button>
         <Divider sx={{ my: 2 }} />
@@ -226,7 +248,7 @@ function App() {
           value={theirAccount}
           sx={{ my: 1 }}
         />
-        <Button variant="outlined" sx={{ my: 1 }}>
+        <Button variant="outlined" onClick={signAndSend} sx={{ my: 1 }}>
           Sign & Send
         </Button>
       </Container>
