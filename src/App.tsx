@@ -13,7 +13,7 @@ import {
 import { DataGrid, GridColDef, GridSelectionModel } from "@mui/x-data-grid"
 import { ellipseAddress } from "./lib/utilities"
 import MyAlgoConnect from "@randlabs/myalgo-connect"
-import { apiGetAccountAssets, IAssetData, getClaimableLogicSig, sendASA } from "./lib/api"
+import { apiGetAccountAssets, IAssetData, getClaimableLogicSig, sendASA, claimASA } from "./lib/api"
 
 function App() {
   const [myAlgoConnector, setMyAlgoConnector] = useState(new MyAlgoConnect())
@@ -71,7 +71,11 @@ function App() {
   }
 
   const signAndSend = async () => {
-    await sendASA(myAlgoConnector, 10458941, 1, connectedAccount, 'KKPWL6OFVUFOAVQGGURJ2EGNZYZZDPEQ37CHEFLLIAFYTCVLP7UZPSV3ME')
+    await sendASA(myAlgoConnector, 10458941, 1, connectedAccount, 'SFAUNX7AIXKTWGDEKAHY762U2H4PR66CTKFKQDL3XKDNG3VSDCIGWQ57KA')
+  }
+
+  const signAndClaim = async () => {
+    await claimASA(myAlgoConnector, 10458941, connectedAccount)
   }
 
   // async function myAlgoSignTransactions() {
@@ -109,7 +113,7 @@ function App() {
     const getClaimableAssets = async () => {
       console.log('IN CLAIMABLE ASSETS')
       const assets = await apiGetAccountAssets(claimablesAccount)
-      setAccountAssets(assets)
+      setClaimableAssets(assets)
     }
     if (claimablesAccount) {
       getClaimableAssets()
@@ -159,7 +163,7 @@ function App() {
             })
           )}
         </Typography> */}
-        <Button variant="outlined" sx={{ my: 1 }}>
+        <Button variant="outlined" onClick={signAndClaim} sx={{ my: 1 }}>
           Claim
         </Button>
         <Divider sx={{ my: 2 }} />

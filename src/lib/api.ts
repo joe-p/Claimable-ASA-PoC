@@ -19,6 +19,8 @@ const client = new algosdk.Algodv2(
   "",
 )
 
+const minFee = 1_000
+
 async function sendAndWait(txns: Uint8Array[] | Uint8Array) {
   const { txId } = await client.sendRawTransaction(txns).do()
   return await algosdk.waitForConfirmation(client, txId, 3)
@@ -76,8 +78,6 @@ async function sendASAToClaimablesAccount( myAlgo: MyAlgoConnect, assetIndex: nu
   const lsig = await getClaimableLogicSig(to)
   alert(`${to} was not opted in to ASA ${assetIndex}. Sending ASA to claimable account ${lsig.address()}`)
 
-  const minFee = 1000
-
   const fund = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
       from,
       to: lsig.address(),
@@ -115,14 +115,27 @@ export async function claimASA(myAlgo: MyAlgoConnect, assetIndex: number, claime
   const suggestedParams = await client.getTransactionParams().do()
   const lsig = await getClaimableLogicSig(claimer)
 
-  const axfer = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+  const optInTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+    from: claimer,
+    to: claimer,
+    amount: 0,
+    suggestedParams: {...suggestedParams, fee: (suggestedParams.fee | minFee) * 2, flatFee: true},
+    assetIndex 
+  })
+
+  const axferTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
       from: lsig.address(),
       to: claimer,
       amount: 0,
-      suggestedParams,
+      suggestedParams: {...suggestedParams, fee: 0, flatFee: true},
       assetIndex, 
       closeRemainderTo: claimer
   })
+
+  const gtxns = algosdk.assignGroupID([optInTxn, axferTxn])
+
+  const sTxns = [ await myAlgo.signTransaction(optInTxn.toByte()), algosdk.signLogicSigTransactionObject(axferTxn, lsig)]
+  await sendAndWait(sTxns.map(t => t.blob))
 }
 
 export async function apiGetAccountAssets(
