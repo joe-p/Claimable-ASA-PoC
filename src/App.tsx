@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import "./App.css"
 import {
   AppBar,
@@ -11,30 +11,22 @@ import {
   Typography,
 } from "@mui/material"
 import { DataGrid, GridColDef, GridSelectionModel } from "@mui/x-data-grid"
-import algosdk from 'algosdk'
-import {sendASA} from './functions'
+import { ellipseAddress } from "./lib/utilities"
 import MyAlgoConnect from "@randlabs/myalgo-connect"
+import { apiGetAccountAssets, IAssetData } from "./lib/api"
 
 function App() {
-  const [claimablesAccount, setClaimablesAccount] = useState(
-    "BTGUIBJM3KF2D6K6IDK5SI4OTKPN4SGLREXZXNYCTDSR4SYYB2LA65EMME"
-  )
-  const [claimableAssets, setClaimableAssets] = useState([])
-  const [connectedAccount, setConnectedAccount] = useState(
-    "KKPWL6OFVUFOAVQGGURJ2EGNZYZZDPEQ37CHEFLLIAFYTCVLP7UZPSV3ME"
-  )
-  const [accountAssets, setAccountAssets] = useState([])
+  const [myAlgoConnector, setMyAlgoConnector] = useState(new MyAlgoConnect())
+  const [claimablesAccount, setClaimablesAccount] = useState("")
+  const [claimableAssets, setClaimableAssets] = useState([] as IAssetData[])
+  const [connectedAccount, setConnectedAccount] = useState("")
+  const [accountAssets, setAccountAssets] = useState([] as IAssetData[])
   const [assetToClaim, setAssetToClaim] = useState([])
   const [assetToSend, setAssetToSend] = useState([])
-  const [theirAccount, setTheirAccount] = useState(
-    "UNEL5OHTIT7XHMO7BQERMLQK3YN5PEGC2H4MRQHX3UT6FVABTNVSGAF2TM"
-  )
-  const [theirClaimablesAccount, setTheirClaimablesAccount] = useState(
-    "LS6AUL6Z3MINZVMQIXI3NNHGSDVOGTW7Y4BUGQSQUQLRJDJY4R25VNBIUQ"
-  )
+  const [theirAccount, setTheirAccount] = useState("")
+  const [theirClaimablesAccount, setTheirClaimablesAccount] = useState("")
   const [theirOptedInStatus, setTheirOptedInStatus] = useState(false)
-  const [amount, setAmount] = useState(null)
-
+  const [amount, setAmount] = useState(0)
   const [claimablesSelectionModel, setClaimablesSelectionModel] =
     React.useState<GridSelectionModel>([])
   const [sendingSelectionModel, setSendingSelectionModel] =
@@ -42,61 +34,97 @@ function App() {
 
   const columns: GridColDef[] = [
     { field: "amount", headerName: "Amount", width: 100, editable: false },
-    { field: "unitName", headerName: "Unit Name", width: 100, editable: false },
     { field: "name", headerName: "Name", width: 100, editable: false },
-    { field: "assetId", headerName: "Asset ID", width: 100, editable: false },
+    { field: "unitName", headerName: "Unit Name", width: 100, editable: false },
+    { field: "id", headerName: "Asset ID", width: 100, editable: false },
+    { field: "decimals", headerName: "Decimals", width: 100, editable: false },
+    { field: "url", headerName: "URL", width: 100, editable: false },
+    { field: "creator", headerName: "Creator", width: 100, editable: false },
+    { field: "frozen", headerName: "Frozen", width: 100, editable: false },
   ]
 
-  const rows = [
-    { id: 0, amount: 10, unitName: "USDC", name: "USD Coin", assetId: 12345 },
-    { id: 1, amount: 200, unitName: "USDT", name: "Tether", assetId: 56789 },
-    {
-      id: 2,
-      amount: 3000,
-      unitName: "WHOA",
-      name: "Surprise!",
-      assetId: 34567,
-    },
-  ]
+  // const rows = [
+  //   { id: 0, amount: 10, unitName: "USDC", name: "USD Coin", assetId: 12345 },
+  //   { id: 1, amount: 200, unitName: "USDT", name: "Tether", assetId: 56789 },
+  //   {
+  //     id: 2,
+  //     amount: 3000,
+  //     unitName: "WHOA",
+  //     name: "Surprise!",
+  //     assetId: 34567,
+  //   },
+  // ]
 
-  async function connectWallet() {
-    
-    const server = 'http://testnet-api.algonode.network'
-    const token = ''
-    const algodClient = new algosdk.Algodv2(token, server, 80)
-
-    
-    const myAlgo = new MyAlgoConnect({ disableLedgerNano: false })
-
-    const settings = {
-      shouldSelectOneAccount: true,
-      openManager: true
+  const connectToMyAlgo = async () => {
+    try {
+      const accounts = await myAlgoConnector.connect({
+        shouldSelectOneAccount: true,
+        openManager: false,
+      })
+      setConnectedAccount(accounts[0].address)
+    } catch (err) {
+      console.error(err)
     }
-
-    const account = (await myAlgo.connect(settings))[0]
-  
-    await sendASA(algodClient, myAlgo, 10458941, 1, account.address, 'KKPWL6OFVUFOAVQGGURJ2EGNZYZZDPEQ37CHEFLLIAFYTCVLP7UZPSV3ME')
   }
+
+  // async function myAlgoSignTransactions() {
+  //   if (!myAlgoConnector) {
+  //     alert(
+  //       "Alright is not connected to MyAlgoConnect.  Please reconnect your wallet."
+  //     )
+  //     return
+  //   }
+  //   try {
+  //     const flatScenarioTxns = unsignedTxns.reduce(
+  //       (acc, val) => acc.concat(val),
+  //       []
+  //     )
+  //     const txnsToSign = flatScenarioTxns.map(({ txn }) => txn)
+  //     const signedTxns = await myAlgoConnector.signTransaction(
+  //       txnsToSign.map((txn) => txn.toByte())
+  //     )
+  //   } catch (err) {
+  //     console.error(err)
+  //   }
+  // }
+
+  useEffect(() => {
+    const getAssets = async () => {
+      const assets = await apiGetAccountAssets(connectedAccount)
+      setAccountAssets(assets)
+    }
+    if (connectedAccount) {
+      getAssets()
+    }
+  }, [connectedAccount])
 
   return (
     <div>
-      <AppBar position="sticky" color="inherit" sx={{ mb: 2 }}>
-        <Toolbar>
-          <Typography variant="h4" sx={{ flexGrow: 1 }}>
-            Claimables Demo
-          </Typography>
-          <Button variant="contained" onClick={connectWallet}>KKPW...V3ME</Button>
-        </Toolbar>
-      </AppBar>
-      <Container maxWidth="md">
+      <Box sx={{ flexGrow: 1, mb: 10 }}>
+        <AppBar position="fixed" color="inherit" sx={{ mb: 2 }}>
+          <Toolbar>
+            <Typography variant="h4" sx={{ flexGrow: 1 }}>
+              Claimables Demo
+            </Typography>
+            <Button variant="contained" onClick={connectToMyAlgo}>
+              {connectedAccount
+                ? ellipseAddress(connectedAccount)
+                : "Connect Wallet"}
+            </Button>
+          </Toolbar>
+        </AppBar>
+      </Box>
+
+      <Container maxWidth="lg">
         <Typography variant="h6">Your ARC-XXXX Claimables Account</Typography>
         <Typography variant="caption">{claimablesAccount}</Typography>
         <Box sx={{ height: 200, width: "100%", my: 1 }}>
           <DataGrid
-            rows={rows}
+            rows={claimableAssets}
             columns={columns}
             density="compact"
-            pageSize={10}
+            pageSize={5}
+            rowsPerPageOptions={[5, 25]}
             onSelectionModelChange={(newSelectionModel) => {
               setClaimablesSelectionModel(newSelectionModel)
             }}
@@ -121,10 +149,11 @@ function App() {
         <Typography variant="caption">{connectedAccount}</Typography>
         <Box sx={{ height: 200, width: "100%", my: 1 }}>
           <DataGrid
-            rows={rows}
+            rows={accountAssets}
             columns={columns}
             density="compact"
-            pageSize={10}
+            pageSize={5}
+            rowsPerPageOptions={[5, 25]}
             onSelectionModelChange={(newSelectionModel) => {
               setSendingSelectionModel(newSelectionModel)
             }}
@@ -171,9 +200,9 @@ function App() {
           autoComplete="off"
           size="small"
           value={
-            rows.find((obj) => {
+            accountAssets.find((obj) => {
               return obj.id === sendingSelectionModel[0]
-            })?.assetId
+            })?.id
           }
           InputProps={{
             readOnly: true,
