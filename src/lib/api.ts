@@ -134,7 +134,7 @@ export async function claimASA(myAlgo: MyAlgoConnect, assetIndex: number, claime
 
   const gtxns = algosdk.assignGroupID([optInTxn, axferTxn])
 
-  const sTxns = [ await myAlgo.signTransaction(optInTxn.toByte()), algosdk.signLogicSigTransactionObject(axferTxn, lsig)]
+  const sTxns = [ await myAlgo.signTransaction(gtxns[0].toByte()), algosdk.signLogicSigTransactionObject(gtxns[1], lsig)]
   await sendAndWait(sTxns.map(t => t.blob))
 }
 
