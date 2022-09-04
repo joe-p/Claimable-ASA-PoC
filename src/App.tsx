@@ -13,7 +13,15 @@ import {
 import { DataGrid, GridColDef, GridSelectionModel } from "@mui/x-data-grid"
 import { ellipseAddress } from "./lib/utilities"
 import MyAlgoConnect from "@randlabs/myalgo-connect"
-import { apiGetAccountAssets, IAssetData, getClaimableLogicSig, sendASA, claimASA } from "./lib/api"
+import {
+  apiGetAccountAssets,
+  IAssetData,
+  getClaimableLogicSig,
+  claimASA,
+  sendASAToAccount,
+  sendASAToClaimablesAccount,
+  checkAssetOptedIn,
+} from "./lib/api"
 
 function App() {
   const [myAlgoConnector, setMyAlgoConnector] = useState(new MyAlgoConnect())
@@ -21,21 +29,32 @@ function App() {
   const [claimableAssets, setClaimableAssets] = useState([] as IAssetData[])
   const [connectedAccount, setConnectedAccount] = useState("")
   const [accountAssets, setAccountAssets] = useState([] as IAssetData[])
-  const [assetToClaim, setAssetToClaim] = useState([])
-  const [assetToSend, setAssetToSend] = useState([])
+  const [assetToClaim, setAssetToClaim] = useState<IAssetData>({} as IAssetData)
+  const [assetToSend, setAssetToSend] = useState<IAssetData>({} as IAssetData)
   const [theirAccount, setTheirAccount] = useState("")
   const [theirClaimablesAccount, setTheirClaimablesAccount] = useState("")
   const [theirOptedInStatus, setTheirOptedInStatus] = useState(false)
-  const [amount, setAmount] = useState(0)
+  const [amountToSend, setAmountToSend] = useState("")
   const [claimablesSelectionModel, setClaimablesSelectionModel] =
     React.useState<GridSelectionModel>([])
-  const [sendingSelectionModel, setSendingSelectionModel] =
+  const [sendablesSelectionModel, setSendablesSelectionModel] =
     React.useState<GridSelectionModel>([])
 
   const columns: GridColDef[] = [
-    { field: "amount", headerName: "Amount", width: 100, editable: false },
-    { field: "name", headerName: "Name", width: 100, editable: false },
+    {
+      field: "amount",
+      headerName: "Amount (Int)",
+      width: 100,
+      editable: false,
+    },
+    {
+      field: "displayAmount",
+      headerName: "Amount",
+      width: 100,
+      editable: false,
+    },
     { field: "unitName", headerName: "Unit Name", width: 100, editable: false },
+    { field: "name", headerName: "Name", width: 100, editable: false },
     { field: "id", headerName: "Asset ID", width: 100, editable: false },
     { field: "decimals", headerName: "Decimals", width: 100, editable: false },
     { field: "url", headerName: "URL", width: 100, editable: false },
@@ -43,25 +62,16 @@ function App() {
     { field: "frozen", headerName: "Frozen", width: 100, editable: false },
   ]
 
-  // const rows = [
-  //   { id: 0, amount: 10, unitName: "USDC", name: "USD Coin", assetId: 12345 },
-  //   { id: 1, amount: 200, unitName: "USDT", name: "Tether", assetId: 56789 },
-  //   {
-  //     id: 2,
-  //     amount: 3000,
-  //     unitName: "WHOA",
-  //     name: "Surprise!",
-  //     assetId: 34567,
-  //   },
-  // ]
-
   const connectToMyAlgo = async () => {
+    setMyAlgoConnector(new MyAlgoConnect())
     try {
       const accounts = await myAlgoConnector.connect({
         shouldSelectOneAccount: true,
         openManager: false,
       })
-      const claimablesAddr = (await getClaimableLogicSig(accounts[0].address)).address()
+      const claimablesAddr = (
+        await getClaimableLogicSig(accounts[0].address)
+      ).address()
 
       setConnectedAccount(accounts[0].address)
       setClaimablesAccount(claimablesAddr)
@@ -70,34 +80,34 @@ function App() {
     }
   }
 
-  const signAndSend = async () => {
-    await sendASA(myAlgoConnector, 10458941, 1, connectedAccount, 'SFAUNX7AIXKTWGDEKAHY762U2H4PR66CTKFKQDL3XKDNG3VSDCIGWQ57KA')
-  }
-
   const signAndClaim = async () => {
-    await claimASA(myAlgoConnector, 10458941, connectedAccount)
+    if (assetToClaim) {
+      await claimASA(myAlgoConnector, assetToClaim.id, connectedAccount)
+    }
   }
 
-  // async function myAlgoSignTransactions() {
-  //   if (!myAlgoConnector) {
-  //     alert(
-  //       "Alright is not connected to MyAlgoConnect.  Please reconnect your wallet."
-  //     )
-  //     return
-  //   }
-  //   try {
-  //     const flatScenarioTxns = unsignedTxns.reduce(
-  //       (acc, val) => acc.concat(val),
-  //       []
-  //     )
-  //     const txnsToSign = flatScenarioTxns.map(({ txn }) => txn)
-  //     const signedTxns = await myAlgoConnector.signTransaction(
-  //       txnsToSign.map((txn) => txn.toByte())
-  //     )
-  //   } catch (err) {
-  //     console.error(err)
-  //   }
-  // }
+  const signAndSend = async () => {
+    if (assetToSend) {
+      if (theirOptedInStatus) {
+        await sendASAToAccount(
+          myAlgoConnector,
+          assetToSend,
+          Number(amountToSend),
+          connectedAccount,
+          theirAccount
+        )
+      } else {
+        await sendASAToClaimablesAccount(
+          myAlgoConnector,
+          assetToSend,
+          Number(amountToSend),
+          connectedAccount,
+          theirAccount,
+          theirClaimablesAccount
+        )
+      }
+    }
+  }
 
   useEffect(() => {
     const getAssets = async () => {
@@ -111,7 +121,6 @@ function App() {
 
   useEffect(() => {
     const getClaimableAssets = async () => {
-      console.log('IN CLAIMABLE ASSETS')
       const assets = await apiGetAccountAssets(claimablesAccount)
       setClaimableAssets(assets)
     }
@@ -119,6 +128,54 @@ function App() {
       getClaimableAssets()
     }
   }, [claimablesAccount])
+
+  useEffect(() => {
+    if (claimablesSelectionModel[0]) {
+      const assetToClaim = claimableAssets.find((obj) => {
+        return obj.id === claimablesSelectionModel[0]
+      })
+      if (assetToClaim) {
+        setAssetToClaim(assetToClaim)
+      }
+    }
+  }, [claimableAssets, claimablesSelectionModel])
+
+  useEffect(() => {
+    if (sendablesSelectionModel[0]) {
+      const assetToSend = accountAssets.find((obj) => {
+        return obj.id === sendablesSelectionModel[0]
+      })
+      if (assetToSend) {
+        setAssetToSend(assetToSend)
+      }
+    }
+  }, [accountAssets, sendablesSelectionModel])
+
+  useEffect(() => {
+    const getStatus = async (theirAccount: string, assetToSend: number) => {
+      const status = await checkAssetOptedIn(theirAccount, assetToSend)
+      setTheirOptedInStatus(status)
+    }
+    const getClaimablesAddr = async (theirAccount: string) => {
+      const theirClaimablesAccount = await getClaimableLogicSig(theirAccount)
+      const theirClaimablesAddr = theirClaimablesAccount.address()
+      setTheirClaimablesAccount(theirClaimablesAddr)
+    }
+    if (theirAccount) {
+      getClaimablesAddr(theirAccount)
+    }
+    if (theirAccount && assetToSend) {
+      getStatus(theirAccount, assetToSend.id)
+    }
+  }, [theirAccount, assetToSend])
+
+  const handleAmountToSend = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAmountToSend(e.target.value)
+  }
+
+  const handleTheirAccount = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTheirAccount(e.target.value)
+  }
 
   return (
     <div>
@@ -136,14 +193,19 @@ function App() {
           </Toolbar>
         </AppBar>
       </Box>
-
       <Container maxWidth="lg">
-        <Typography variant="h6">Your ARC-XXXX Claimables Account</Typography>
+        <Typography variant="h6">
+          Your ARC-XXXX Claimable ASAs Account
+        </Typography>
         <Typography variant="caption">{claimablesAccount}</Typography>
+        <Typography>
+          ALGO Balance: {claimableAssets[0]?.displayAmount}
+        </Typography>
         <Box sx={{ height: 200, width: "100%", my: 1 }}>
           <DataGrid
-            rows={claimableAssets}
+            rows={claimableAssets.slice(1)}
             columns={columns}
+            columnVisibilityModel={{ amount: false, decimals: false }}
             density="compact"
             pageSize={5}
             rowsPerPageOptions={[5, 25]}
@@ -154,85 +216,48 @@ function App() {
           />
         </Box>
         <Typography>
-          Claim asset into your account from your pending claimables account
+          Claim the selected asset into your account from your connected
+          claimables account
         </Typography>
-        {/* <Typography>
-          {JSON.stringify(
-            rows.find((obj) => {
-              return obj.id === claimablesSelectionModel[0]
-            })
-          )}
-        </Typography> */}
-        <Button variant="outlined" onClick={signAndClaim} sx={{ my: 1 }}>
+        <Button
+          variant="outlined"
+          disabled={!assetToClaim}
+          onClick={signAndClaim}
+          sx={{ my: 1 }}
+        >
           Claim
         </Button>
         <Divider sx={{ my: 2 }} />
-        <Typography variant="h6">Your Main Account Holdings</Typography>
+        <Typography variant="h6">Your Main Account Assets</Typography>
         <Typography variant="caption">{connectedAccount}</Typography>
+        <Typography>ALGO Balance: {accountAssets[0]?.displayAmount}</Typography>
         <Box sx={{ height: 200, width: "100%", my: 1 }}>
           <DataGrid
-            rows={accountAssets}
+            rows={accountAssets.slice(1)}
             columns={columns}
+            columnVisibilityModel={{ amount: false, decimals: false }}
             density="compact"
             pageSize={5}
             rowsPerPageOptions={[5, 25]}
             onSelectionModelChange={(newSelectionModel) => {
-              setSendingSelectionModel(newSelectionModel)
+              setSendablesSelectionModel(newSelectionModel)
             }}
-            selectionModel={sendingSelectionModel}
+            selectionModel={sendablesSelectionModel}
           />
         </Box>
-        {/* <Typography>
-          {JSON.stringify(
-            rows.find((obj) => {
-              return obj.id === sendingSelectionModel[0]
-            })
-          )}
-        </Typography> */}
         <Typography sx={{ my: 1 }}>
-          Send an asset to anyone or their claimables account, if they're not
-          opted into the asset
+          Send the selected ASA, defaulting to their claimables account if they
+          have not opted in to the ASA
         </Typography>
-        <TextField
-          id="yourAccount"
-          label="Your Address"
-          autoComplete="off"
-          fullWidth
-          size="small"
-          value={connectedAccount}
-          InputProps={{
-            readOnly: true,
-          }}
-          InputLabelProps={{
-            shrink: true,
-          }}
-          sx={{ my: 1 }}
-        />
         <TextField
           id="amount"
           label="Amount"
           autoComplete="off"
           size="small"
-          value={amount}
+          type="number"
+          value={amountToSend}
+          onChange={handleAmountToSend}
           sx={{ mr: 1, my: 1 }}
-        />
-        <TextField
-          id="asset"
-          label="Asset"
-          autoComplete="off"
-          size="small"
-          value={
-            accountAssets.find((obj) => {
-              return obj.id === sendingSelectionModel[0]
-            })?.id
-          }
-          InputProps={{
-            readOnly: true,
-          }}
-          InputLabelProps={{
-            shrink: true,
-          }}
-          sx={{ my: 1 }}
         />
         <TextField
           id="theirAccount"
@@ -240,16 +265,24 @@ function App() {
           autoComplete="off"
           fullWidth
           helperText={
-            theirOptedInStatus
-              ? null
-              : `Sending to their pending claimables account: ${theirClaimablesAccount}`
+            theirAccount
+              ? theirOptedInStatus
+                ? `Account is opted in to ASA ${assetToSend?.id}`
+                : `Sending to their pending claimables account: ${theirClaimablesAccount}`
+              : null
           }
           size="small"
           value={theirAccount}
+          onChange={handleTheirAccount}
           sx={{ my: 1 }}
         />
-        <Button variant="outlined" onClick={signAndSend} sx={{ my: 1 }}>
-          Sign & Send
+        <Button
+          variant="outlined"
+          disabled={!assetToSend}
+          onClick={signAndSend}
+          sx={{ my: 1 }}
+        >
+          Send
         </Button>
       </Container>
     </div>
