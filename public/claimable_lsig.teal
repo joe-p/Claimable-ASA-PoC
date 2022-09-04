@@ -1,0 +1,97 @@
+#pragma version 6
+b main
+handle_claim_payment: // handle_claim_payment()
+txn GroupIndex
+int 1
++
+gtxns OnCompletion
+int NoOp
+==
+assert
+txn GroupIndex
+int 1
++
+gtxns ApplicationID
+$APP_ID
+==
+assert
+retsub
+handle_optin: // handle_optin()
+txn AssetReceiver
+txn Sender
+==
+assert
+txn AssetCloseTo
+global ZeroAddress
+==
+assert
+retsub
+handle_claim_axfer: // handle_claim_axfer()
+txn AssetReceiver
+$RECEIVER_ADDRESS
+==
+assert
+txn AssetCloseTo
+$RECEIVER_ADDRESS
+==
+assert
+txn GroupIndex
+int 1
++
+gtxns TypeEnum
+int pay
+==
+assert
+txn GroupIndex
+int 1
++
+gtxns Sender
+txn Sender
+==
+assert
+retsub
+handle_axfer: // handle_axfer()
+txn AssetReceiver
+txn Sender
+==
+bz if0_else0
+callsub handle_optin
+b if0_end
+if0_else0:
+txn AssetReceiver
+$RECEIVER_ADDRESS
+==
+bz if0_else1
+callsub handle_claim_axfer
+b if0_end
+if0_else1:
+err
+if0_end:
+retsub
+main:
+txn Fee
+int 0
+==
+assert
+txn RekeyTo
+global ZeroAddress
+==
+assert
+txn TypeEnum
+int pay
+==
+bz if1_else0
+callsub handle_claim_payment
+b if1_end
+if1_else0:
+txn TypeEnum
+int axfer
+==
+bz if1_else1
+callsub handle_axfer
+b if1_end
+if1_else1:
+err
+if1_end:
+int 1
+return

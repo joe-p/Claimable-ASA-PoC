@@ -21,6 +21,8 @@ const client = new algosdk.Algodv2(
 )
 
 const MIN_FEE = 1_000
+const APP_ID = 108024333
+const MBR = 100_000
 
 async function sendAndWait(txns: Uint8Array[] | Uint8Array) {
   const { txId } = await client.sendRawTransaction(txns).do()
@@ -35,18 +37,25 @@ async function compileProgram(programSource: string) {
   const program = encoder.encode(programSource)
   const result = await client.compile(program).sourcemap(true).do()
   const compiledBytes = new Uint8Array(Buffer.from(result.result, 'base64'))
-  // const sourceMap = new algosdk.SourceMap(result.sourcemap)
+  /*
+  const sourceMap = new algosdk.SourceMap(result.sourcemap)
   let lineIndex = 0
-  programSource.split("\n").forEach(line => console.log(`${lineIndex}: ${line}`))
+  programSource.split("\n").forEach(line =>  { console.log(`${lineIndex} | ${sourceMap.getPcsForLine(lineIndex)}: ${line}`); lineIndex++ })
+  */
   return compiledBytes
 }
 
 export async function getClaimableLogicSig(address: string) {
-  const response = await fetch('/claimable.teal')
+  const response = await fetch('/claimable_lsig.teal')
   const tealTemplate = await response.text()
-  const teal = tealTemplate.replaceAll('$RECEIVER_ADDRESS', address)
-  const bytes = await compileProgram(teal)
-  return new algosdk.LogicSigAccount(bytes)
+  let teal = tealTemplate 
+
+  //const appBytes = (await client.getApplicationByID(APP_ID).do()).params['approval-program']
+  //teal = teal.replaceAll('$APP_BYTES', `byte b64 ${appBytes}`)
+  teal = teal.replaceAll('$RECEIVER_ADDRESS', `addr ${address}`)
+  teal = teal.replaceAll('$APP_ID', `int ${APP_ID}`)
+
+  return new algosdk.LogicSigAccount(await compileProgram(teal))
 }
 
 export async function checkAssetOptedIn(address: string, assetIndex: number): Promise<boolean> {
@@ -121,7 +130,7 @@ export async function claimASA(myAlgo: MyAlgoConnect, assetIndex: number, claime
     from: claimer,
     to: claimer,
     amount: 0,
-    suggestedParams: { ...suggestedParams, fee: (suggestedParams.fee | MIN_FEE) * 2, flatFee: true },
+    suggestedParams,
     assetIndex
   })
 
@@ -134,9 +143,48 @@ export async function claimASA(myAlgo: MyAlgoConnect, assetIndex: number, claime
     closeRemainderTo: claimer
   })
 
-  const gtxns = algosdk.assignGroupID([optInTxn, axferTxn])
+  const creator = (await client.getAssetByID(assetIndex).do()).params.creator
+  const lsigBalance = (await client.accountInformation(lsig.address()).do()).amount
 
-  const sTxns = [await myAlgo.signTransaction(gtxns[0].toByte()), algosdk.signLogicSigTransactionObject(gtxns[1], lsig)]
+  const payObj = {
+    from: lsig.address(),
+    to: creator,
+    suggestedParams: { ...suggestedParams, fee: 0, flatFee: true },
+    amount: 2*MBR
+  } as {
+    from: string
+    suggestedParams: algosdk.SuggestedParams
+    to: string
+    amount: number | bigint
+    closeRemainderTo?: string | undefined
+  }
+
+  if (lsigBalance == 2*MBR) {
+    payObj.closeRemainderTo = creator
+  }
+
+  const payTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject(payObj)
+
+  const appTxn = algosdk.makeApplicationNoOpTxnFromObject({
+    from: claimer,
+    suggestedParams: { ...suggestedParams, fee: (suggestedParams.fee | MIN_FEE) * 3, flatFee: true },
+    appIndex: APP_ID,
+    accounts: [lsig.address(), creator],
+    foreignAssets: [assetIndex]
+  })
+
+  const gtxns = algosdk.assignGroupID([optInTxn, axferTxn, payTxn, appTxn])
+
+  const myAlgoTxns = [gtxns[0].toByte(), gtxns[3].toByte()]
+  const signedMyAlgoTxns = await myAlgo.signTransaction(myAlgoTxns)
+
+  const sTxns = [
+    signedMyAlgoTxns[0], 
+    algosdk.signLogicSigTransactionObject(gtxns[1], lsig),
+    algosdk.signLogicSigTransactionObject(gtxns[2], lsig),
+    signedMyAlgoTxns[1], 
+  ]
+  
   await sendAndWait(sTxns.map(t => t.blob))
 }
 
