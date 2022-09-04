@@ -11,9 +11,9 @@ class ClaimablePaymentApp < TEALrb::Contract
     @scratch.axfer_index = Txn.group_index - 2
     @axfer = Gtxns[@scratch.axfer_index]
 
-    @asset = Txna.assets[0]
-    @lsig_account = Txna.accounts[1]
-    @creator = Txna.accounts[2]
+    @asset = Assets[0]
+    @lsig_account = Accounts[1]
+    @creator = Accounts[2]
 
     assert @creator == @asset.creator
     assert @axfer.xfer_asset == @asset
