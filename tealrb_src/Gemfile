@@ -1,0 +1,6 @@
+source 'https://rubygems.org'
+
+gem 'tealrb'
+gem 'rubocop'
+gem 'solargraph'
+

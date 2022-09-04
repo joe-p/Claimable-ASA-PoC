@@ -1,0 +1,74 @@
+#pragma version 6
+b main
+init: // init()
+txn GroupIndex
+int 1
+-
+store 0 // pay_index
+txn GroupIndex
+int 2
+-
+store 1 // axfer_index
+txna Accounts 1
+txna Assets 0
+asset_params_get AssetCreator
+pop
+==
+assert
+load 1 // axfer_index
+gtxns XferAsset
+txna Assets 0
+==
+assert
+load 1 // axfer_index
+gtxns Sender
+txna Accounts 0
+==
+assert
+load 0 // pay_index
+gtxns Sender
+txna Accounts 0
+==
+assert
+retsub
+handle_close: // handle_close()
+load 0 // pay_index
+gtxns Amount
+int 0
+==
+assert
+load 0 // pay_index
+gtxns CloseRemainderTo
+txna Accounts 0
+==
+assert
+retsub
+handle_pay: // handle_pay()
+load 0 // pay_index
+gtxns Amount
+global MinBalance
+int 2
+*
+==
+assert
+retsub
+main:
+txn OnCompletion
+int NoOp
+==
+assert
+callsub init
+txna Accounts 0
+acct_params_get AcctMinBalance
+global MinBalance
+int 2
+*
+==
+bz if0_else0
+callsub handle_close
+b if0_end
+if0_else0:
+callsub handle_pay
+if0_end:
+int 1
+return

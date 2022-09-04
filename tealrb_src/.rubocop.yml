@@ -1,0 +1,22 @@
+inherit_from: ../.rubocop.yml
+# This is an example .rubocop.yml for TEALrb contracts
+
+# Single-line if conditions are not supported (yet)
+Style/IfUnlessModifier:
+  Enabled: false
+
+# Allow void literals (strings for bytes, symbols for labels)
+Lint/Void:
+  Enabled: false
+
+# Since case isn't supported by TEALrb (yet), if/elsif are acceptable
+Style/CaseLikeIf:
+  Enabled: false
+
+# Numeric predicates (#zero?, #positive?, #negative?) are not yet supported
+Style/NumericPredicate:
+  EnforcedStyle: comparison
+
+# Single-line while loops are not supported (yet)
+Style/WhileUntilModifier:
+  Enabled: false
