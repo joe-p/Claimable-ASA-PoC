@@ -2,10 +2,7 @@
 
 require_relative '/Users/joe/git/joe-p/TEALrb/lib/tealrb.rb'
 
-RECEIVER_ADDRESS = '$RECEIVER_ADDRESS'
-APP_HASH = '$APP_HASH'
-
-class ClaimablePaymentApp < TEALrb::Contract
+class ClaimablePaymentApp < TEALrb::Contract  
   # [axfer, pay, appcall]
   subroutine :init do
     @scratch.pay_index = Txn.group_index - 1
@@ -15,8 +12,8 @@ class ClaimablePaymentApp < TEALrb::Contract
     @axfer = Gtxns[@scratch.axfer_index]
 
     @asset = Txna.assets[0]
-    @lsig_account = Txna.accounts[0]
-    @creator = Txna.accounts[1]
+    @lsig_account = Txna.accounts[1]
+    @creator = Txna.accounts[2]
 
     assert @creator == @asset.creator
     assert @axfer.xfer_asset == @asset
@@ -29,7 +26,7 @@ class ClaimablePaymentApp < TEALrb::Contract
 
   subroutine :handle_close do
     assert @payment.amount == 0
-    assert @payment.close_remainder_to == @lsig_account
+    assert @payment.close_remainder_to == @creator
   end
 
   subroutine :handle_pay do
@@ -37,6 +34,7 @@ class ClaimablePaymentApp < TEALrb::Contract
   end
 
   def main
+    approve if Txn.application_id == 0
     assert Txn.on_completion == int('NoOp')
     init
 
@@ -50,21 +48,27 @@ class ClaimablePaymentApp < TEALrb::Contract
   end
 end
 
+RECEIVER_ADDRESS = '$RECEIVER_ADDRESS'
+APP_BYTES = '$APP_BYTES'
+APP_ID = '$APP_ID'
+
 class ClaimableAccountLogicSignature < TEALrb::Contract
 
   subroutine :handle_claim_payment do
     # Use app to verify creator address is the receiver and whether or not we need to close out
-    assert sha512_256(Gtxns[Txn.group_index + 1].approval_program) == placeholder(APP_HASH)
+    assert Gtxns[Txn.group_index + 1].on_completion == int('NoOp')
+    assert Gtxns[Txn.group_index + 1].application_id == placeholder(APP_ID)
+    #assert Gtxns[Txn.group_index + 1].approval_program == placeholder(APP_BYTES)
   end
 
   subroutine :handle_optin do
-    assert Txn.asset_receiver == Txn.receiver
+    assert Txn.asset_receiver == Txn.sender
     assert Txn.asset_close_to == Global.zero_address
   end
 
   subroutine :handle_claim_axfer do
     assert Txn.asset_receiver == placeholder(RECEIVER_ADDRESS)
-    assert Txn.asset_close_to == Global.zero_address
+    assert Txn.asset_close_to == placeholder(RECEIVER_ADDRESS)
     assert Gtxns[Txn.group_index + 1].type_enum == TxnType.pay
     assert Gtxns[Txn.group_index + 1].sender == Txn.sender
   end

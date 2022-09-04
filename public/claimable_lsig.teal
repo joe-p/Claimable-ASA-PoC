@@ -4,15 +4,21 @@ handle_claim_payment: // handle_claim_payment()
 txn GroupIndex
 int 1
 +
-gtxns ApprovalProgram
-sha512_256
-$APP_HASH
+gtxns OnCompletion
+int NoOp
+==
+assert
+txn GroupIndex
+int 1
++
+gtxns ApplicationID
+$APP_ID
 ==
 assert
 retsub
 handle_optin: // handle_optin()
 txn AssetReceiver
-txn Receiver
+txn Sender
 ==
 assert
 txn AssetCloseTo
@@ -26,7 +32,7 @@ $RECEIVER_ADDRESS
 ==
 assert
 txn AssetCloseTo
-global ZeroAddress
+$RECEIVER_ADDRESS
 ==
 assert
 txn GroupIndex
