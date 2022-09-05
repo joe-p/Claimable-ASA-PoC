@@ -2,6 +2,12 @@ import algosdk, { IntDecoding } from "algosdk"
 import MyAlgoConnect from "@randlabs/myalgo-connect"
 import { formatBigNumWithDecimals, makeBigIntAmount } from "./utilities"
 
+export interface WaitResponse {
+  txId: number, 
+  groupId?: string,
+  response: Record<string, any>
+}
+
 export interface IAssetData {
   id: number
   amount: number
@@ -82,7 +88,7 @@ export async function sendASAToAccount(myAlgo: MyAlgoConnect, asset: IAssetData,
   })
 
   const sTxn = await myAlgo.signTransaction(axfer.toByte())
-  return await sendAndWait(sTxn.blob)
+  return await sendAndWait(sTxn.blob) as WaitResponse
 }
 
 export async function sendASAToClaimablesAccount(myAlgo: MyAlgoConnect, asset: IAssetData, amount: number, from: string, theirAccount: string, theirClaimablesAccount: string) {
@@ -119,7 +125,12 @@ export async function sendASAToClaimablesAccount(myAlgo: MyAlgoConnect, asset: I
   const signedSenderTxns = await myAlgo.signTransaction([gtxnBytes[0], gtxnBytes[2]])
   const sTxns = [signedSenderTxns[0], signedLsigTxn, signedSenderTxns[1]].map(t => t.blob)
 
-  return await sendAndWait(sTxns)
+  const response = await sendAndWait(sTxns)
+  return { 
+    groupId: gtxns[0].group?.toString('base64'),
+    txId: response.txId,
+    response: response.response
+  } as WaitResponse
 }
 
 export async function claimASA(myAlgo: MyAlgoConnect, assetIndex: number, claimer: string) {
@@ -185,7 +196,12 @@ export async function claimASA(myAlgo: MyAlgoConnect, assetIndex: number, claime
     signedMyAlgoTxns[1],
   ]
 
-  return await sendAndWait(sTxns.map(t => t.blob))
+  const response = await sendAndWait(sTxns.map(t => t.blob))
+  return { 
+    groupId: gtxns[0].group?.toString('base64'),
+    txId: response.txId,
+    response: response.response
+  } as WaitResponse
 }
 
 export async function apiGetAccountAssets(
