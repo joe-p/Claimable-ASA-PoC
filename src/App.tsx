@@ -32,6 +32,7 @@ import {
   sendASAToAccount,
   sendASAToClaimablesAccount,
   checkAssetOptedIn,
+  WaitResponse,
 } from "./lib/api"
 import AltRouteIcon from "@mui/icons-material/AltRoute"
 import SaveAltIcon from "@mui/icons-material/SaveAlt"
@@ -40,6 +41,8 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import CallMadeIcon from "@mui/icons-material/CallMade"
 import { ReactComponent as AlgoIconImported } from "./assets/algo.svg"
 import diagram from "./assets/diagram.png"
+
+
 
 function App() {
   const [myAlgoConnector, setMyAlgoConnector] = useState(new MyAlgoConnect())
@@ -57,7 +60,7 @@ function App() {
     React.useState<GridSelectionModel>([])
   const [sendablesSelectionModel, setSendablesSelectionModel] =
     React.useState<GridSelectionModel>([])
-  const [confirmation, setConfirmation] = useState({ txId: 0, response: {} })
+  const [confirmation, setConfirmation] = useState({ txId: 0, response: {}} as WaitResponse)
   const [waiting, setWaiting] = useState(false)
   const [alertOpen, setAlertOpen] = React.useState(false)
 
@@ -141,6 +144,14 @@ function App() {
       }
     }
     setWaiting(false)
+  }
+
+  const getAlgoExplorerLink = (response: WaitResponse) => {
+    if (response.groupId) {
+      return `https://testnet.algoexplorer.io/tx/group/${encodeURIComponent(response.groupId)}`
+    } else {
+      return `https://testnet.algoexplorer.io/tx/${response.txId}`
+    }
   }
 
   useEffect(() => {
@@ -397,14 +408,11 @@ function App() {
         <DialogTitle id="alert-dialog-title">Transaction Confirmed</DialogTitle>
         <DialogContent>
           <DialogContentText id="alert-dialog-description">
-            <Typography sx={{ wordWrap: "break-word" }}>
-              Transaction ID {confirmation.txId} confirmed with response:{" "}
-            </Typography>
-            <Typography> {JSON.stringify(confirmation.response)}</Typography>
+            <Typography> Transaction(s) confirmed in round {confirmation.response['confirmed-round']}! </Typography>
           </DialogContentText>
-          {confirmation?.txId ? (
+          {confirmation?.txId || confirmation?.groupId ? (
             <Link
-              href={`https://testnet.algoexplorer.io/tx/${confirmation?.txId}`}
+              href={getAlgoExplorerLink(confirmation)}
               underline="none"
               target="_blank"
               rel="noopener noreferrer"
