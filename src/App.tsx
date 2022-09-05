@@ -1,15 +1,26 @@
 import React, { useEffect, useState } from "react"
 import "./App.css"
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   AppBar,
   Box,
   Button,
   Container,
-  Divider,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Link,
+  Stack,
+  SvgIcon,
   TextField,
   Toolbar,
   Typography,
 } from "@mui/material"
+import LoadingButton from "@mui/lab/LoadingButton"
 import { DataGrid, GridColDef, GridSelectionModel } from "@mui/x-data-grid"
 import { ellipseAddress } from "./lib/utilities"
 import MyAlgoConnect from "@randlabs/myalgo-connect"
@@ -22,6 +33,13 @@ import {
   sendASAToClaimablesAccount,
   checkAssetOptedIn,
 } from "./lib/api"
+import AltRouteIcon from "@mui/icons-material/AltRoute"
+import SaveAltIcon from "@mui/icons-material/SaveAlt"
+import WalletIcon from "@mui/icons-material/Wallet"
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
+import CallMadeIcon from "@mui/icons-material/CallMade"
+import { ReactComponent as AlgoIconImported } from "./assets/algo.svg"
+import diagram from "./assets/diagram.png"
 
 function App() {
   const [myAlgoConnector, setMyAlgoConnector] = useState(new MyAlgoConnect())
@@ -39,6 +57,9 @@ function App() {
     React.useState<GridSelectionModel>([])
   const [sendablesSelectionModel, setSendablesSelectionModel] =
     React.useState<GridSelectionModel>([])
+  const [confirmation, setConfirmation] = useState({ txId: 0, response: {} })
+  const [waiting, setWaiting] = useState(false)
+  const [alertOpen, setAlertOpen] = React.useState(false)
 
   const columns: GridColDef[] = [
     {
@@ -81,23 +102,34 @@ function App() {
   }
 
   const signAndClaim = async () => {
-    if (assetToClaim) {
-      await claimASA(myAlgoConnector, assetToClaim.id, connectedAccount)
+    if (!!assetToClaim.id) {
+      setWaiting(true)
+      setConfirmation({ txId: 0, response: {} })
+      const response = await claimASA(
+        myAlgoConnector,
+        assetToClaim.id,
+        connectedAccount
+      )
+      setConfirmation(response)
     }
+    setWaiting(false)
   }
 
   const signAndSend = async () => {
-    if (assetToSend) {
+    if (!!assetToSend.id && Number(amountToSend) > 0) {
+      setWaiting(true)
+      setConfirmation({ txId: 0, response: {} })
       if (theirOptedInStatus) {
-        await sendASAToAccount(
+        const response = await sendASAToAccount(
           myAlgoConnector,
           assetToSend,
           Number(amountToSend),
           connectedAccount,
           theirAccount
         )
+        setConfirmation(response)
       } else {
-        await sendASAToClaimablesAccount(
+        const response = await sendASAToClaimablesAccount(
           myAlgoConnector,
           assetToSend,
           Number(amountToSend),
@@ -105,14 +137,18 @@ function App() {
           theirAccount,
           theirClaimablesAccount
         )
+        setConfirmation(response)
       }
     }
+    setWaiting(false)
   }
 
   useEffect(() => {
     const getAssets = async () => {
+      setWaiting(true)
       const assets = await apiGetAccountAssets(connectedAccount)
       setAccountAssets(assets)
+      setWaiting(false)
     }
     if (connectedAccount) {
       getAssets()
@@ -121,8 +157,10 @@ function App() {
 
   useEffect(() => {
     const getClaimableAssets = async () => {
+      setWaiting(true)
       const assets = await apiGetAccountAssets(claimablesAccount)
       setClaimableAssets(assets)
+      setWaiting(false)
     }
     if (claimablesAccount) {
       getClaimableAssets()
@@ -169,6 +207,12 @@ function App() {
     }
   }, [theirAccount, assetToSend])
 
+  useEffect(() => {
+    if (confirmation.txId) {
+      setAlertOpen(true)
+    }
+  }, [confirmation])
+
   const handleAmountToSend = (e: React.ChangeEvent<HTMLInputElement>) => {
     setAmountToSend(e.target.value)
   }
@@ -176,16 +220,23 @@ function App() {
   const handleTheirAccount = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTheirAccount(e.target.value)
   }
+  const handleClose = async () => {
+    setAlertOpen(false)
+    setWaiting(true)
+    const assets = await apiGetAccountAssets(connectedAccount)
+    setAccountAssets(assets)
+    setWaiting(false)
+  }
 
   return (
     <div>
       <Box sx={{ flexGrow: 1, mb: 10 }}>
         <AppBar position="fixed" color="inherit" sx={{ mb: 2 }}>
           <Toolbar>
-            <Typography variant="h4" sx={{ flexGrow: 1 }}>
-              Claimables Demo
-            </Typography>
+            <Typography variant="h5">Claimable ASAs Demo</Typography>
+            <Box sx={{ flexGrow: 1 }} />
             <Button variant="contained" onClick={connectToMyAlgo}>
+              <WalletIcon sx={{ mr: 0.5 }} />
               {connectedAccount
                 ? ellipseAddress(connectedAccount)
                 : "Connect Wallet"}
@@ -194,12 +245,35 @@ function App() {
         </AppBar>
       </Box>
       <Container maxWidth="lg">
+        <Accordion sx={{ mb: 1 }}>
+          <AccordionSummary
+            expandIcon={<ExpandMoreIcon />}
+            aria-controls="panel1a-content"
+            id="panel1a-header"
+          >
+            <Typography>See the ARC-XXXX transaction diagram</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <img
+              src={diagram}
+              width="100%"
+              alt="Diagram of the transaction flow"
+            />
+          </AccordionDetails>
+        </Accordion>
         <Typography variant="h6">
           Your ARC-XXXX Claimable ASAs Account
         </Typography>
         <Typography variant="caption">{claimablesAccount}</Typography>
         <Typography>
-          ALGO Balance: {claimableAssets[0]?.displayAmount}
+          ALGO Balance:
+          <SvgIcon
+            component={AlgoIconImported}
+            inheritViewBox
+            fontSize="large"
+            sx={{ ml: -1, mb: -1.5 }}
+          />
+          {claimableAssets[0]?.displayAmount}
         </Typography>
         <Box sx={{ height: 200, width: "100%", my: 1 }}>
           <DataGrid
@@ -215,22 +289,40 @@ function App() {
             selectionModel={claimablesSelectionModel}
           />
         </Box>
-        <Typography>
-          Claim the selected asset into your account from your connected
-          claimables account
-        </Typography>
-        <Button
-          variant="outlined"
-          disabled={!assetToClaim}
-          onClick={signAndClaim}
+        <Stack
+          direction="row"
+          justifyContent="flex-start"
+          alignItems="flex-start"
+          spacing={1}
           sx={{ my: 1 }}
         >
-          Claim
-        </Button>
-        <Divider sx={{ my: 2 }} />
+          <LoadingButton
+            variant="contained"
+            disabled={!assetToClaim}
+            onClick={signAndClaim}
+            loading={waiting}
+            sx={{ mt: 0.5, minWidth: 100 }}
+          >
+            Claim&nbsp;
+            <SaveAltIcon />
+          </LoadingButton>
+          <Typography>
+            Claim the selected asset into your account from your connected
+            claimables account
+          </Typography>
+        </Stack>
         <Typography variant="h6">Your Main Account Assets</Typography>
         <Typography variant="caption">{connectedAccount}</Typography>
-        <Typography>ALGO Balance: {accountAssets[0]?.displayAmount}</Typography>
+        <Typography>
+          ALGO Balance:
+          <SvgIcon
+            component={AlgoIconImported}
+            inheritViewBox
+            fontSize="large"
+            sx={{ ml: -1, mb: -1.5 }}
+          />
+          {accountAssets[0]?.displayAmount}
+        </Typography>
         <Box sx={{ height: 200, width: "100%", my: 1 }}>
           <DataGrid
             rows={accountAssets.slice(1)}
@@ -245,46 +337,94 @@ function App() {
             selectionModel={sendablesSelectionModel}
           />
         </Box>
-        <Typography sx={{ my: 1 }}>
-          Send the selected ASA, defaulting to their claimables account if they
-          have not opted in to the ASA
-        </Typography>
-        <TextField
-          id="amount"
-          label="Amount"
-          autoComplete="off"
-          size="small"
-          type="number"
-          value={amountToSend}
-          onChange={handleAmountToSend}
-          sx={{ mr: 1, my: 1 }}
-        />
-        <TextField
-          id="theirAccount"
-          label="Their Address"
-          autoComplete="off"
-          fullWidth
-          helperText={
-            theirAccount
-              ? theirOptedInStatus
-                ? `Account is opted in to ASA ${assetToSend?.id}`
-                : `Sending to their pending claimables account: ${theirClaimablesAccount}`
-              : null
-          }
-          size="small"
-          value={theirAccount}
-          onChange={handleTheirAccount}
-          sx={{ my: 1 }}
-        />
-        <Button
-          variant="outlined"
-          disabled={!assetToSend}
-          onClick={signAndSend}
+        <Stack direction="row" spacing={1}>
+          <TextField
+            id="amount"
+            label="Amount"
+            autoComplete="off"
+            size="small"
+            type="number"
+            value={amountToSend}
+            onChange={handleAmountToSend}
+          />
+          <TextField
+            id="theirAccount"
+            label="Their Address"
+            autoComplete="off"
+            fullWidth
+            helperText={
+              theirAccount
+                ? theirOptedInStatus
+                  ? `Account is opted in to ASA ${assetToSend?.id}`
+                  : `Diverting to their pending claimables account: ${theirClaimablesAccount}`
+                : null
+            }
+            size="small"
+            value={theirAccount}
+            onChange={handleTheirAccount}
+            sx={{ my: 1 }}
+          />
+        </Stack>
+        <Stack
+          direction="row"
+          justifyContent="flex-start"
+          alignItems="flex-start"
+          spacing={1}
           sx={{ my: 1 }}
         >
-          Send
-        </Button>
+          <LoadingButton
+            variant="contained"
+            disabled={!assetToSend || !theirAccount}
+            onClick={signAndSend}
+            loading={waiting}
+            sx={{ mt: 0.5, minWidth: 100 }}
+          >
+            Send&nbsp;
+            <AltRouteIcon sx={{ rotate: "90deg" }} />
+          </LoadingButton>
+          <Typography sx={{ my: 1 }}>
+            Send the selected ASA to an account, automatically diverting to
+            their claimables account if they have not opted in to the ASA
+          </Typography>
+        </Stack>
       </Container>
+      <Dialog
+        open={alertOpen}
+        onClose={handleClose}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">Transaction Confirmed</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            <Typography sx={{ wordWrap: "break-word" }}>
+              Transaction ID {confirmation.txId} confirmed with response:{" "}
+            </Typography>
+            <Typography> {JSON.stringify(confirmation.response)}</Typography>
+          </DialogContentText>
+          {confirmation?.txId ? (
+            <Link
+              href={`https://testnet.algoexplorer.io/tx/${confirmation?.txId}`}
+              underline="none"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button
+                variant="outlined"
+                endIcon={<CallMadeIcon />}
+                sx={{ my: 2 }}
+              >
+                <Typography>AlgoExplorer</Typography>
+              </Button>
+            </Link>
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose} autoFocus>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   )
 }

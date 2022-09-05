@@ -27,8 +27,8 @@ const MBR = 100_000
 async function sendAndWait(txns: Uint8Array[] | Uint8Array) {
   const { txId } = await client.sendRawTransaction(txns).do()
   const response = await algosdk.waitForConfirmation(client, txId, 3)
-  alert(`Transaction confirmation response: ${JSON.stringify(response)}`)
-  return
+  console.log(`Transaction confirmation response: ${JSON.stringify(response)}`)
+  return { txId, response }
 }
 
 // https://developer.algorand.org/docs/get-details/dapps/smart-contracts/frontend/apps/#create
@@ -48,7 +48,7 @@ async function compileProgram(programSource: string) {
 export async function getClaimableLogicSig(address: string) {
   const response = await fetch('/claimable_lsig.teal')
   const tealTemplate = await response.text()
-  let teal = tealTemplate 
+  let teal = tealTemplate
 
   //const appBytes = (await client.getApplicationByID(APP_ID).do()).params['approval-program']
   //teal = teal.replaceAll('$APP_BYTES', `byte b64 ${appBytes}`)
@@ -82,7 +82,7 @@ export async function sendASAToAccount(myAlgo: MyAlgoConnect, asset: IAssetData,
   })
 
   const sTxn = await myAlgo.signTransaction(axfer.toByte())
-  await sendAndWait(sTxn.blob)
+  return await sendAndWait(sTxn.blob)
 }
 
 export async function sendASAToClaimablesAccount(myAlgo: MyAlgoConnect, asset: IAssetData, amount: number, from: string, theirAccount: string, theirClaimablesAccount: string) {
@@ -119,7 +119,7 @@ export async function sendASAToClaimablesAccount(myAlgo: MyAlgoConnect, asset: I
   const signedSenderTxns = await myAlgo.signTransaction([gtxnBytes[0], gtxnBytes[2]])
   const sTxns = [signedSenderTxns[0], signedLsigTxn, signedSenderTxns[1]].map(t => t.blob)
 
-  await sendAndWait(sTxns)
+  return await sendAndWait(sTxns)
 }
 
 export async function claimASA(myAlgo: MyAlgoConnect, assetIndex: number, claimer: string) {
@@ -150,7 +150,7 @@ export async function claimASA(myAlgo: MyAlgoConnect, assetIndex: number, claime
     from: lsig.address(),
     to: creator,
     suggestedParams: { ...suggestedParams, fee: 0, flatFee: true },
-    amount: 2*MBR
+    amount: 2 * MBR
   } as {
     from: string
     suggestedParams: algosdk.SuggestedParams
@@ -159,7 +159,7 @@ export async function claimASA(myAlgo: MyAlgoConnect, assetIndex: number, claime
     closeRemainderTo?: string | undefined
   }
 
-  if (lsigBalance == 2*MBR) {
+  if (lsigBalance === 2 * MBR) {
     payObj.closeRemainderTo = creator
   }
 
@@ -179,13 +179,13 @@ export async function claimASA(myAlgo: MyAlgoConnect, assetIndex: number, claime
   const signedMyAlgoTxns = await myAlgo.signTransaction(myAlgoTxns)
 
   const sTxns = [
-    signedMyAlgoTxns[0], 
+    signedMyAlgoTxns[0],
     algosdk.signLogicSigTransactionObject(gtxns[1], lsig),
     algosdk.signLogicSigTransactionObject(gtxns[2], lsig),
-    signedMyAlgoTxns[1], 
+    signedMyAlgoTxns[1],
   ]
-  
-  await sendAndWait(sTxns.map(t => t.blob))
+
+  return await sendAndWait(sTxns.map(t => t.blob))
 }
 
 export async function apiGetAccountAssets(
