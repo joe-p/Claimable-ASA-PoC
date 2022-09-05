@@ -42,8 +42,6 @@ import CallMadeIcon from "@mui/icons-material/CallMade"
 import { ReactComponent as AlgoIconImported } from "./assets/algo.svg"
 import diagram from "./assets/diagram.png"
 
-
-
 function App() {
   const [myAlgoConnector, setMyAlgoConnector] = useState(new MyAlgoConnect())
   const [claimablesAccount, setClaimablesAccount] = useState("")
@@ -60,9 +58,34 @@ function App() {
     React.useState<GridSelectionModel>([])
   const [sendablesSelectionModel, setSendablesSelectionModel] =
     React.useState<GridSelectionModel>([])
-  const [confirmation, setConfirmation] = useState({ txId: 0, response: {}} as WaitResponse)
+  const [confirmation, setConfirmation] = useState({
+    txId: 0,
+    response: {},
+  } as WaitResponse)
   const [waiting, setWaiting] = useState(false)
   const [alertOpen, setAlertOpen] = React.useState(false)
+
+  function resetApp() {
+    setMyAlgoConnector(new MyAlgoConnect())
+    setClaimablesAccount("")
+    setClaimableAssets([] as IAssetData[])
+    setConnectedAccount("")
+    setAccountAssets([] as IAssetData[])
+    setAssetToClaim({} as IAssetData)
+    setAssetToSend({} as IAssetData)
+    setTheirAccount("")
+    setTheirClaimablesAccount("")
+    setTheirOptedInStatus(false)
+    setAmountToSend("")
+    setClaimablesSelectionModel([])
+    setSendablesSelectionModel([])
+    setConfirmation({
+      txId: 0,
+      response: {},
+    } as WaitResponse)
+    setWaiting(false)
+    setAlertOpen(false)
+  }
 
   const columns: GridColDef[] = [
     {
@@ -148,7 +171,9 @@ function App() {
 
   const getAlgoExplorerLink = (response: WaitResponse) => {
     if (response.groupId) {
-      return `https://testnet.algoexplorer.io/tx/group/${encodeURIComponent(response.groupId)}`
+      return `https://testnet.algoexplorer.io/tx/group/${encodeURIComponent(
+        response.groupId
+      )}`
     } else {
       return `https://testnet.algoexplorer.io/tx/${response.txId}`
     }
@@ -210,10 +235,9 @@ function App() {
       const theirClaimablesAddr = theirClaimablesAccount.address()
       setTheirClaimablesAccount(theirClaimablesAddr)
     }
-    if (theirAccount) {
+
+    if (theirAccount && assetToSend.id) {
       getClaimablesAddr(theirAccount)
-    }
-    if (theirAccount && assetToSend) {
       getStatus(theirAccount, assetToSend.id)
     }
   }, [theirAccount, assetToSend])
@@ -246,7 +270,10 @@ function App() {
           <Toolbar>
             <Typography variant="h5">Claimable ASAs Demo</Typography>
             <Box sx={{ flexGrow: 1 }} />
-            <Button variant="contained" onClick={connectToMyAlgo}>
+            <Button
+              variant="contained"
+              onClick={connectedAccount ? resetApp : connectToMyAlgo}
+            >
               <WalletIcon sx={{ mr: 0.5 }} />
               {connectedAccount
                 ? ellipseAddress(connectedAccount)
@@ -309,7 +336,7 @@ function App() {
         >
           <LoadingButton
             variant="contained"
-            disabled={!assetToClaim}
+            disabled={!assetToClaim.id}
             onClick={signAndClaim}
             loading={waiting}
             sx={{ mt: 0.5, minWidth: 100 }}
@@ -385,7 +412,7 @@ function App() {
         >
           <LoadingButton
             variant="contained"
-            disabled={!assetToSend || !theirAccount}
+            disabled={!assetToSend.id || !theirAccount}
             onClick={signAndSend}
             loading={waiting}
             sx={{ mt: 0.5, minWidth: 100 }}
@@ -408,7 +435,10 @@ function App() {
         <DialogTitle id="alert-dialog-title">Transaction Confirmed</DialogTitle>
         <DialogContent>
           <DialogContentText id="alert-dialog-description">
-            <Typography> Transaction(s) confirmed in round {confirmation.response['confirmed-round']}! </Typography>
+            <Typography>
+              Transaction(s) confirmed in round{" "}
+              {confirmation.response["confirmed-round"]}!
+            </Typography>
           </DialogContentText>
           {confirmation?.txId || confirmation?.groupId ? (
             <Link
