@@ -1,84 +1,111 @@
 #pragma version 6
 b main
 init: // init()
-txn GroupIndex
-int 1
--
-store 0 // pay_index
-txn GroupIndex
-int 2
--
-store 1 // axfer_index
-txna Accounts 2
-txna Assets 0
-asset_params_get AssetCreator
-pop
-==
-assert
-load 1 // axfer_index
-gtxns XferAsset
-txna Assets 0
-==
-assert
-load 1 // axfer_index
-gtxns Sender
-txna Accounts 1
-==
-assert
-load 0 // pay_index
-gtxns Sender
-txna Accounts 1
-==
-assert
-retsub
+    
+    // save the index of the payment transaction
+    txn GroupIndex
+    int 1
+    -
+    store 0 // pay_index
+    
+    // save the index of the axfer transaction
+    txn GroupIndex
+    int 2
+    -
+    store 1 // axfer_index
+    
+    // verify the asset creator is in the accounts array
+    txna Accounts 2
+    txna Assets 0
+    asset_params_get AssetCreator
+    pop
+    ==
+    assert
+    
+    // verify the asset is in the assets array
+    load 1 // axfer_index
+    gtxns XferAsset
+    txna Assets 0
+    ==
+    assert
+    
+    // verify the asset is being sent from the lsig account
+    load 1 // axfer_index
+    gtxns Sender
+    txna Accounts 1
+    ==
+    assert
+    
+    // verify the payment is coming from the lsig account
+    load 0 // pay_index
+    gtxns Sender
+    txna Accounts 1
+    ==
+    assert
+    retsub
+
 handle_close: // handle_close()
-load 0 // pay_index
-gtxns Amount
-int 0
-==
-assert
-load 0 // pay_index
-gtxns CloseRemainderTo
-txna Accounts 2
-==
-assert
-retsub
+    
+    // verify the payment amount is zero
+    load 0 // pay_index
+    gtxns Amount
+    int 0
+    ==
+    assert
+    
+    // verify the lsig is being closed to the creator
+    load 0 // pay_index
+    gtxns CloseRemainderTo
+    txna Accounts 2
+    ==
+    assert
+    retsub
+
 handle_pay: // handle_pay()
-load 0 // pay_index
-gtxns Amount
-global MinBalance
-int 2
-*
-==
-assert
-retsub
+    
+    // verify the payment amount is equal to 2*MBR
+    load 0 // pay_index
+    gtxns Amount
+    global MinBalance
+    int 2
+    *
+    ==
+    assert
+    retsub
+
 main:
-txn ApplicationID
-int 0
-==
-bz if0_else0
-int 1
-return
-b if0_end
-if0_else0:
-if0_end:
-txn OnCompletion
-int NoOp
-==
-assert
-callsub init
-txna Accounts 1
-acct_params_get AcctMinBalance
-pop
-global MinBalance
-int 2
-*
-==
-bz if1_else0
-callsub handle_close
-b if1_end
-if1_else0:
-callsub handle_pay
-if1_end:
-int 1
-return
+    
+    // approve if the application is being created
+    txn ApplicationID
+    int 0
+    ==
+    bz if0_else0
+    int 1
+    return
+    b if0_end
+    if0_else0:
+    if0_end:
+    
+    // ensure the OnComplete is NoOp
+    txn OnCompletion
+    int NoOp
+    ==
+    assert
+    callsub init
+    
+    // conditional logic to determine if we should handle a payment or close
+    txna Accounts 1
+    acct_params_get AcctMinBalance
+    pop
+    global MinBalance
+    int 2
+    *
+    ==
+    bz if1_else0 // if the lsig balance is 2*MBR, then verify the lsig is being closed
+    callsub handle_close
+    b if1_end
+    if1_else0: // else if the lsig balance is above 2*MBR, then verify the payment amount is 2*MBR
+    callsub handle_pay
+    if1_end:
+    int 1
+    return
