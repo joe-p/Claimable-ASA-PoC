@@ -57,7 +57,7 @@ class ClaimablePaymentApp < TEALrb::Contract
     # // conditional logic to determine if we should handle a payment or close
     if @lsig_account.min_balance == @amount # // if the lsig balance is 2*MBR, then verify the lsig is being closed
       handle_close
-    else # // else if the lsig balance is above
+    else # // else if the lsig balance is above 2*MBR, then verify the payment amount is 2*MBR
       handle_pay
     end
 
@@ -136,8 +136,8 @@ end
 
 lsig = ClaimableAccountLogicSignature.new
 lsig.compile
-File.write("#{__dir__}/../public/claimable_lsig.teal", lsig.teal.join("\n"))
+File.write("#{__dir__}/../public/claimable_lsig.teal", lsig.teal_source)
 
 app = ClaimablePaymentApp.new
 app.compile
-File.write("#{__dir__}/../public/claim_app.teal", app.teal.join("\n"))
+File.write("#{__dir__}/../public/claim_app.teal", app.teal_source)
