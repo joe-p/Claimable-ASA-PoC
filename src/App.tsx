@@ -39,6 +39,7 @@ import SaveAltIcon from "@mui/icons-material/SaveAlt"
 import WalletIcon from "@mui/icons-material/Wallet"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import CallMadeIcon from "@mui/icons-material/CallMade"
+import RefreshIcon from "@mui/icons-material/Refresh"
 import { ReactComponent as AlgoIconImported } from "./assets/algo.svg"
 import diagram from "./assets/diagram.png"
 
@@ -178,30 +179,33 @@ function App() {
       return `https://testnet.algoexplorer.io/tx/${response.txId}`
     }
   }
+  const handleAmountToSend = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAmountToSend(e.target.value)
+  }
+
+  const handleTheirAccount = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTheirAccount(e.target.value)
+  }
+  const handleClose = async () => {
+    setAlertOpen(false)
+    refreshAssets()
+  }
+
+  const refreshAssets = async () => {
+    setWaiting(true)
+    const assets = await apiGetAccountAssets(connectedAccount)
+    const claimableAssets = await apiGetAccountAssets(claimablesAccount)
+    setAccountAssets(assets)
+    setClaimableAssets(claimableAssets)
+    setWaiting(false)
+  }
 
   useEffect(() => {
-    const getAssets = async () => {
-      setWaiting(true)
-      const assets = await apiGetAccountAssets(connectedAccount)
-      setAccountAssets(assets)
-      setWaiting(false)
+    if (connectedAccount && claimablesAccount) {
+      refreshAssets()
     }
-    if (connectedAccount) {
-      getAssets()
-    }
-  }, [connectedAccount])
-
-  useEffect(() => {
-    const getClaimableAssets = async () => {
-      setWaiting(true)
-      const assets = await apiGetAccountAssets(claimablesAccount)
-      setClaimableAssets(assets)
-      setWaiting(false)
-    }
-    if (claimablesAccount) {
-      getClaimableAssets()
-    }
-  }, [claimablesAccount])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connectedAccount, claimablesAccount])
 
   useEffect(() => {
     if (claimablesSelectionModel[0]) {
@@ -248,21 +252,6 @@ function App() {
     }
   }, [confirmation])
 
-  const handleAmountToSend = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setAmountToSend(e.target.value)
-  }
-
-  const handleTheirAccount = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTheirAccount(e.target.value)
-  }
-  const handleClose = async () => {
-    setAlertOpen(false)
-    setWaiting(true)
-    const assets = await apiGetAccountAssets(connectedAccount)
-    setAccountAssets(assets)
-    setWaiting(false)
-  }
-
   return (
     <div>
       <Box sx={{ flexGrow: 1, mb: 10 }}>
@@ -270,6 +259,11 @@ function App() {
           <Toolbar>
             <Typography variant="h5">Claimable ASAs Demo</Typography>
             <Box sx={{ flexGrow: 1 }} />
+            {connectedAccount ? (
+              <LoadingButton onClick={refreshAssets} loading={waiting}>
+                <RefreshIcon />
+              </LoadingButton>
+            ) : null}
             <Button
               variant="contained"
               onClick={connectedAccount ? resetApp : connectToMyAlgo}
@@ -299,9 +293,7 @@ function App() {
             />
           </AccordionDetails>
         </Accordion>
-        <Typography variant="h6">
-          Your ARC-XXXX Claimable ASAs Account
-        </Typography>
+        <Typography variant="h6">Your ARC-XXXX Claimable ASAs</Typography>
         <Typography variant="caption">{claimablesAccount}</Typography>
         <Typography>
           ALGO Balance:
@@ -391,7 +383,7 @@ function App() {
             autoComplete="off"
             fullWidth
             helperText={
-              theirAccount
+              theirAccount && assetToSend.id
                 ? theirOptedInStatus
                   ? `Account is opted in to ASA ${assetToSend?.id}`
                   : `Diverting to their pending claimables account: ${theirClaimablesAccount}`
@@ -435,8 +427,9 @@ function App() {
         <DialogTitle id="alert-dialog-title">Transaction Confirmed</DialogTitle>
         <DialogContent>
           <DialogContentText id="alert-dialog-description">
+            <Typography>Transaction(s) confirmed in round </Typography>
             <Typography>
-              Transaction(s) confirmed in round{" "}
+              {" "}
               {confirmation.response["confirmed-round"]}!
             </Typography>
           </DialogContentText>
