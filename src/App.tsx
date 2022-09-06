@@ -254,10 +254,10 @@ function App() {
 
   return (
     <div>
-      <Box sx={{ flexGrow: 1, mb: 10 }}>
+      <Box sx={{ flexGrow: 1, mb: 9 }}>
         <AppBar position="fixed" color="inherit" sx={{ mb: 2 }}>
           <Toolbar>
-            <Typography variant="h5">Claimable ASAs Demo</Typography>
+            <Typography variant="h6">Claimable ASAs Demo</Typography>
             <Box sx={{ flexGrow: 1 }} />
             {connectedAccount ? (
               <LoadingButton onClick={refreshAssets} loading={waiting}>
@@ -268,24 +268,30 @@ function App() {
               variant="contained"
               onClick={connectedAccount ? resetApp : connectToMyAlgo}
             >
-              <WalletIcon sx={{ mr: 0.5 }} />
-              {connectedAccount
-                ? ellipseAddress(connectedAccount)
-                : "Connect Wallet"}
+              {connectedAccount ? ellipseAddress(connectedAccount) : "Connect"}
+              <WalletIcon sx={{ ml: 0.5 }} />
             </Button>
           </Toolbar>
         </AppBar>
       </Box>
       <Container maxWidth="lg">
-        <Accordion sx={{ mb: 1 }}>
+        <Accordion sx={{ mb: 2 }}>
           <AccordionSummary
             expandIcon={<ExpandMoreIcon />}
             aria-controls="panel1a-content"
             id="panel1a-header"
           >
-            <Typography>See the ARC-XXXX transaction diagram</Typography>
+            <Typography>Learn about "Claimable ASAs"</Typography>
           </AccordionSummary>
           <AccordionDetails>
+            <Typography sx={{ mb: 1 }}>
+              Claimable ASAs is a proposed standard for sending assets to
+              accounts which have not opted in to the ASA by leveraging a
+              special TEAL smart signature contract account. The smart signature
+              code can accept incoming ASAs and then only allow the intended
+              recipient to claim the ASA at their convenience. Learn more about
+              the proposal and provide feedback in the Algorand forum.
+            </Typography>
             <img
               src={diagram}
               width="100%"
@@ -293,7 +299,9 @@ function App() {
             />
           </AccordionDetails>
         </Accordion>
-        <Typography variant="h6">Your ARC-XXXX Claimable ASAs</Typography>
+        <Typography fontWeight="900">
+          Your ARC-XXXX Claimable Assets (Testnet)
+        </Typography>
         <Typography variant="caption">{claimablesAccount}</Typography>
         <Typography>
           ALGO Balance:
@@ -341,7 +349,9 @@ function App() {
             claimables account
           </Typography>
         </Stack>
-        <Typography variant="h6">Your Main Account Assets</Typography>
+        <Typography variant="subtitle1" fontWeight="900">
+          Your Connected Account Assets (Testnet)
+        </Typography>
         <Typography variant="caption">{connectedAccount}</Typography>
         <Typography>
           ALGO Balance:
