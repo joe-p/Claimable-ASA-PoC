@@ -1,17 +1,16 @@
 # frozen_string_literal: true
 
-require_relative '/Users/joe/git/joe-p/TEALrb/lib/tealrb.rb'
-
-class ClaimablePaymentApp < TEALrb::Contract  
+require 'tealrb'
+class ClaimablePaymentApp < TEALrb::Contract
   # [axfer, pay, appcall]
   subroutine :init do
     # // save the index of the payment transaction
-    @scratch.pay_index = Txn.group_index - 1
-    @payment = Gtxns[@scratch.pay_index]
+    @scratch[:pay_index] = Txn.group_index - 1
+    @payment = Gtxns[@scratch[:pay_index]]
 
     # // save the index of the axfer transaction
-    @scratch.axfer_index = Txn.group_index - 2
-    @axfer = Gtxns[@scratch.axfer_index]
+    @scratch[:axfer_index] = Txn.group_index - 2
+    @axfer = Gtxns[@scratch[:axfer_index]]
 
     @asset = Assets[0]
     @lsig_account = Accounts[1]
@@ -19,7 +18,7 @@ class ClaimablePaymentApp < TEALrb::Contract
 
     # // verify the asset creator is in the accounts array
     assert @creator == @asset.creator
-    
+
     # // verify the asset is in the assets array
     assert @axfer.xfer_asset == @asset
 
@@ -70,7 +69,6 @@ APP_BYTES = '$APP_BYTES'
 APP_ID = '$APP_ID'
 
 class ClaimableAccountLogicSignature < TEALrb::Contract
-
   subroutine :handle_claim_payment do
     # Use app to verify creator address is the receiver and whether or not we need to close out
     # // verify that the app call is a NoOp
@@ -120,7 +118,7 @@ class ClaimableAccountLogicSignature < TEALrb::Contract
 
     # // verify the lsig cannot be rekeyed
     assert Txn.rekey_to == Global.zero_address
-    
+
     # // conditional logic to handle transaction type
     if Txn.type_enum == TxnType.pay # // if this is a payment, handle the payment
       handle_claim_payment
