@@ -11,7 +11,14 @@ Learn more about the proposed stadard by reading the full draft ARC [here](ARC-X
 
 ## TEALrb Scripts
 
-To be added...
+TEALrb is a DSL for writing Algorand smart contracts written in Ruby. Compiled TEAL source can be found at [public/claimable_lsig.teal](public/claimable_lsig.teal) and [public/claim_app.teal](public/claim_app.teal)
+
+### Installation
+1. Install Ruby 2.7
+2. Run `bundle install`
+
+### Usage
+1. To compile to TEAL run `bundle exec ruby claimable.rb`
 
 ## Create React App
 
