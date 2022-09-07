@@ -1,17 +1,16 @@
 # frozen_string_literal: true
 
-require_relative '/Users/joe/git/joe-p/TEALrb/lib/tealrb.rb'
-
+require 'tealrb'
 class ClaimablePaymentApp < TEALrb::Contract  
   # [axfer, pay, appcall]
   subroutine :init do
     # // save the index of the payment transaction
-    @scratch.pay_index = Txn.group_index - 1
-    @payment = Gtxns[@scratch.pay_index]
+    @scratch[:pay_index] = Txn.group_index - 1
+    @payment = Gtxns[@scratch[:pay_index]]
 
     # // save the index of the axfer transaction
-    @scratch.axfer_index = Txn.group_index - 2
-    @axfer = Gtxns[@scratch.axfer_index]
+    @scratch[:axfer_index] = Txn.group_index - 2
+    @axfer = Gtxns[@scratch[:axfer_index]]
 
     @asset = Assets[0]
     @lsig_account = Accounts[1]
