@@ -85,7 +85,7 @@ Logic for transfering the claimable ASA to the intended receivers account. This 
 
 ##### handle_axfer
 
-Logic for determining whether the logic should branch to `handle_claim_axfer` or `handle_claim_payment`.
+Logic for determining whether the logic should branch to `handle_claim_axfer` or `handle_optin`.
 
 ##### main
 
