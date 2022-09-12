@@ -73,9 +73,7 @@ class ClaimableAccountLogicSignature < TEALrb::Contract
     # Use app to verify creator address is the receiver and whether or not we need to close out
     # // verify that the app call is a NoOp
     assert Gtxns[Txn.group_index + 1].on_completion == int('NoOp')
-
-    # // verify the correct app is being called
-    # // TODO: verify approval program bytes instead of App ID to be network agnostic
+    # // verify that the app call is to the correct app
     assert Gtxns[Txn.group_index + 1].application_id == placeholder(APP_ID)
   end
 
