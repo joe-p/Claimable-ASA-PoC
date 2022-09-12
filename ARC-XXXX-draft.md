@@ -54,6 +54,8 @@ The key words "**MUST**", "**MUST NOT**", "**REQUIRED**", "**SHALL**", "**SHALL 
 - **dApp**: A decentralized application frontend, interpreted here to mean an off-chain frontend (a webapp, native app, etc.) that interacts with Applications on the blockchain.
 - **Explorer**: An off-chain application that allows browsing the blockchain, showing details of transactions.
 - **Wallet**: An off-chain application that stores secret keys for on-chain accounts and can display and sign transactions for these accounts.
+- **Mainnet ID**: The ID for the application that should be used upon claiming an asset on mainnet
+- **Testnet ID**: The ID for the application that should be used upoin claiming an asset on testnet
 
 ### Transaction Model
 
@@ -63,7 +65,96 @@ To be added
 
 ### TEAL Smart Contracts
 
-[To be added...]
+There are two smart contracts being used for ARC-XXXX. A [smart signature](public/claimable_lsig.teal) and a [stateful application](public/claim_app.teal). In summary, the smart signature is the account used for holding the ASA and handling opt-in and claim logic. The stateful application is used atomically upon claim to ensure the creator of the ASA is paid 0.2 ALGO.
+
+#### Smart signature
+
+The smart signature contains the primary logic for controlling the claimable ASA. The address for the claimable account is derived from this smart signature. The smart signature is broken down into multiple sections.
+
+##### handle_claim_payment
+
+Logic for handling the payment of 0.2 ALGO that is sent back to the ASA creator upon claiming of the ASA by the intended receiver. This logic relies on an atomic app call to the stateful application to verify the receiver of the payment is the asset creator. A stateful application must be used here since stateless mart signatures cannot get the creator of an asset.
+
+##### handle_optin
+
+Logic for verifying an opt-in transaction for the claimable account. The receiver must of be the sender (which is the smart signature address) and the transaction must not be closing out the asset.
+
+##### handle_claim_axfer
+
+Logic for transfering the claimable ASA to the intended receivers account. This transaction must be grouped with a transaction handled by `handle_claim_payment` and the stateful application.
+
+##### handle_axfer
+
+Logic for determining whether the logic should branch to `handle_claim_axfer` or `handle_claim_payment`.
+
+##### main
+
+Logic that contains necessary assertions, such as verifying the account is not being closed or rekey. Ultimately routes to `handle_claim_payment`, `handle_axfer` or `err`.
+
+#### Application
+
+The application is used to ensure the creator is payed upon ASA claiming. A stateful application must be used to get the creator of the ASA. The application logic is broken down into multiple sections.
+
+##### init
+
+Initializes scartch variables and ensures the app arrays are properly populated.
+
+##### handle_close
+Logic that is ran when the claimable account needs to close it's algo balance to pay the ASA creator 0.2 ALGO.
+
+##### handle_pay
+Logic that is ran when the climaable account can pay the ASA creator 0.2 ALGO
+
+##### main
+Automatically approves app creation and rejects any OnComplete other than NoOp. Contains conditional logic to handle whether the claimable account should be closed or a regular payment should be made.
+
+### Implementation
+
+#### Calculating Claimable Address
+
+To calculate the claimable address for any given account, one MUST take the TEAL source code shown in [claimable_lsig.teal](public/claimable_lsig.teal) and perform the following steps before compilation.
+
+1. Replace every instance of `$RECEIVER_ADDRESS` with `byte addr` followed by the base32 address of the intended receiver. 
+2. Replace every instance of `$APP_ID` with the `APP_ID` for the respective network as defined above
+
+The address for the compiled smart signature is the claimable address.
+
+#### Sending a New ASA To Claimable Account
+
+To send an ASA to an account that may or may not be opted in, the client sending the asset MUST check if the intended receiver is already opted into the ASA. If it is, the ASA MUST be sent per usual. If not, the following transaction group MUST be sent to the network.
+
+1. Payment
+   1. From: ASA sender
+   2. To: claimable account
+   3. Amount: 2*MBR
+2. Asset opt-in
+   1. From: claimable account
+   2. To: claimable account
+   3. Amount: 0
+   4. Fee: 0
+3. Asset transfer
+   1. From: ASA sender
+   2. To: claimable account
+
+#### Claiming an ASA
+
+To claim an ASA the following trasnaction group MUST be sent.
+
+1. Asset transfer
+   1. From: claimable account
+   2. To: claimer
+   3. Amount: 0
+   4. Close Asset To: claimer
+2. Pay transaction
+   1. From: claimable account
+   2. To: ASA creator
+   3. Amount: 2*MBR
+   4. Close Asset To: Creator if claimable account balance is exactly 2*MBR. Otherwise zero address
+3. Application Call
+   1. From: claimer
+   2. AppID: Mainnet ID or Testnet ID, depending on which network the trasnaction is taking place on
+   3. Accounts: claimable account, ASA creator
+   4. Assets: ASA being claimed
 
 ## Rationale
 
