@@ -145,11 +145,13 @@ To claim an ASA the following trasnaction group MUST be sent.
    2. To: claimer
    3. Amount: 0
    4. Close Asset To: claimer
+   5. Fee: 0
 2. Pay transaction
    1. From: claimable account
    2. To: ASA creator
    3. Amount: 2*MBR
    4. Close Asset To: Creator if claimable account balance is exactly 2*MBR. Otherwise zero address
+   5. Fee: 0
 3. Application Call
    1. From: claimer
    2. AppID: Mainnet ID or Testnet ID, depending on which network the trasnaction is taking place on
