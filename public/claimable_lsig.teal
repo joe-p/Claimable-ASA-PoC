@@ -11,8 +11,7 @@ handle_claim_payment: // handle_claim_payment()
     ==
     assert
     
-    // verify the correct app is being called
-    // TODO: verify approval program bytes instead of App ID to be network agnostic
+    // verify that the app call is to the correct app
     txn GroupIndex
     int 1
     +

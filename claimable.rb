@@ -132,8 +132,8 @@ end
 
 lsig = ClaimableAccountLogicSignature.new
 lsig.compile
-File.write("#{__dir__}/../public/claimable_lsig.teal", lsig.teal_source)
+File.write("#{__dir__}/public/claimable_lsig.teal", lsig.teal_source)
 
 app = ClaimablePaymentApp.new
 app.compile
-File.write("#{__dir__}/../public/claim_app.teal", app.teal_source)
+File.write("#{__dir__}/public/claim_app.teal", app.teal_source)
