@@ -1,63 +1,48 @@
 # frozen_string_literal: true
 
-require 'tealrb'
+require_relative '../TEALrb/lib/tealrb'
 class ClaimablePaymentApp < TEALrb::Contract
-  # [axfer, pay, appcall]
-  subroutine :init do
-    # // save the index of the payment transaction
-    @scratch[:pay_index] = Txn.group_index - 1
-    @payment = Gtxns[@scratch[:pay_index]]
+  subroutine :init_scratch do
+    $payment_txn = Gtxns[Txn.group_index - 1]
 
-    # // save the index of the axfer transaction
-    @scratch[:axfer_index] = Txn.group_index - 2
-    @axfer = Gtxns[@scratch[:axfer_index]]
+    $axfer_txn = Gtxns[Txn.group_index - 2]
 
-    @asset = Assets[0]
-    @lsig_account = Accounts[1]
-    @creator = Accounts[2]
+    $asa_being_claimed = Assets[0]
 
-    # // verify the asset creator is in the accounts array
-    assert @creator == @asset.creator
+    $lsig_account = Accounts[1]
 
-    # // verify the asset is in the assets array
-    assert @axfer.xfer_asset == @asset
+    $asa_creator = $asa_being_claimed.creator
 
-    # // verify the asset is being sent from the lsig account
-    assert @axfer.sender == @lsig_account
-
-    # // verify the payment is coming from the lsig account
-    assert @payment.sender == @lsig_account
-
-    # Assume that ASA MBR will always be equal to account MBR
-    @amount = Global.min_balance * 2
-  end
-
-  subroutine :handle_close do
-    # // verify the payment amount is zero
-    assert @payment.amount == 0
-
-    # // verify the lsig is being closed to the creator
-    assert @payment.close_remainder_to == @creator
-  end
-
-  subroutine :handle_pay do
-    # // verify the payment amount is equal to 2*MBR
-    assert @payment.amount == @amount
+    $payment_amount = Global.min_balance * 2
   end
 
   def main
-    # // approve if the application is being created
-    approve if Txn.application_id == 0
-
     # // ensure the OnComplete is NoOp
     assert Txn.on_completion == int('NoOp')
-    init
 
-    # // conditional logic to determine if we should handle a payment or close
-    if @lsig_account.min_balance == @amount # // if the lsig balance is 2*MBR, then verify the lsig is being closed
-      handle_close
-    else # // else if the lsig balance is above 2*MBR, then verify the payment amount is 2*MBR
-      handle_pay
+    # // instantly approve if the application is being created
+    approve if Txn.application_id == 0
+
+    init_scratch
+
+    # // verify the asset is in the assets array
+    assert $axfer_txn.xfer_asset == $asa_being_claimed
+
+    # // verify the asset is being sent from the lsig account
+    assert $axfer_txn.sender == $lsig_account
+
+    # // verify the payment is coming from the lsig account
+    assert $payment_txn.sender == $lsig_account
+
+    # // verify the payment amount is equal to 2*MBR
+    assert $payment_txn.amount == $payment_amount
+
+    # // verify the payment is being sent to the creator
+    assert $payment_txn.receiver == $asa_creator
+
+    # // if the balance is 2*MBR, then the smart signature account must be closed
+    if $lsig_account.min_balance == $payment_amount
+      assert $payment_txn.close_remainder_to == $asa_creator
     end
 
     approve
