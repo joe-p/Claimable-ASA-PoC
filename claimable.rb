@@ -3,9 +3,11 @@
 require_relative '../TEALrb/lib/tealrb'
 class ClaimablePaymentApp < TEALrb::Contract
   subroutine :init_scratch do
-    $payment_txn = Gtxns[Txn.group_index - 1]
+    $payment_txn = Gtxns[Txn.group_index + 2]
 
-    $axfer_txn = Gtxns[Txn.group_index - 2]
+    $axfer_txn = Gtxns[Txn.group_index + 1]
+
+    approve
 
     $asa_being_claimed = Assets[0]
 
@@ -41,7 +43,7 @@ class ClaimablePaymentApp < TEALrb::Contract
     assert $payment_txn.receiver == $asa_creator
 
     # // if the balance is 2*MBR, then the smart signature account must be closed
-    if $lsig_account.min_balance == $payment_amount
+    if $lsig_account.balance == $payment_amount
       assert $payment_txn.close_remainder_to == $asa_creator
     end
 
@@ -57,9 +59,9 @@ class ClaimableAccountLogicSignature < TEALrb::Contract
   subroutine :handle_claim_payment do
     # Use app to verify creator address is the receiver and whether or not we need to close out
     # // verify that the app call is a NoOp
-    assert Gtxns[Txn.group_index + 1].on_completion == int('NoOp')
+    assert Gtxns[Txn.group_index - 2].on_completion == int('NoOp')
     # // verify that the app call is to the correct app
-    assert Gtxns[Txn.group_index + 1].application_id == placeholder(APP_ID)
+    assert Gtxns[Txn.group_index - 2].application_id == placeholder(APP_ID)
   end
 
   subroutine :handle_optin do

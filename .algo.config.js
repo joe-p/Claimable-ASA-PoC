@@ -10,7 +10,7 @@ module.exports = {
   },
   accounts: {
     joe: {
-      deploy: '5GDINVI7PQTTEO7NQTBZPY6T6FJENXAIE576PTTTN7MXXYTLTWBDBZ3FUM'
+      deploy: '3PGIVMV6NWX4Q24B4SJGNDXLMM66S64PAOSMI54TYUFTWEMI6EPUZ7TGC4'
     }
   },
   txns: {
@@ -22,8 +22,8 @@ module.exports = {
         from: 'joe',
         schema: {
           global: {
-            ints: 0,
-            bytes: 0
+            ints: 2,
+            bytes: 2
           },
           local: {
             ints: 0,
@@ -31,7 +31,7 @@ module.exports = {
           }
         },
         teal: {
-          compileCmd: "ruby tealrb_src/claimable.rb",
+          compileCmd: "ruby claimable.rb",
           approval: "./public/claim_app.teal",
           clear: "./public/clear.teal"
         }

@@ -4,8 +4,8 @@ handle_claim_payment: // handle_claim_payment()
     
     // verify that the app call is a NoOp
     txn GroupIndex
-    int 1
-    +
+    int 2
+    -
     gtxns OnCompletion
     int NoOp
     ==
@@ -13,8 +13,8 @@ handle_claim_payment: // handle_claim_payment()
     
     // verify that the app call is to the correct app
     txn GroupIndex
-    int 1
-    +
+    int 2
+    -
     gtxns ApplicationID
     $APP_ID
     ==

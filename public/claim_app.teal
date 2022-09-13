@@ -2,13 +2,15 @@
 b main
 init_scratch: // init_scratch()
     txn GroupIndex
-    int 1
-    -
+    int 2
+    +
     store 0 // payment_txn
     txn GroupIndex
-    int 2
-    -
+    int 1
+    +
     store 1 // axfer_txn
+    int 1
+    return
     txna Assets 0
     store 2 // asa_being_claimed
     txna Accounts 1
@@ -80,7 +82,7 @@ main:
     
     // if the balance is 2*MBR, then the smart signature account must be closed
     load 3 // lsig_account
-    acct_params_get AcctMinBalance
+    acct_params_get AcctBalance
     pop
     load 5 // payment_amount
     ==
