@@ -95,18 +95,12 @@ Logic that contains necessary assertions, such as verifying the account is not b
 
 The application is used to ensure the creator is payed upon ASA claiming. A stateful application must be used to get the creator of the ASA. The application logic is broken down into multiple sections.
 
-##### init
+##### init_scratch
 
-Initializes scartch variables and ensures the app arrays are properly populated.
-
-##### handle_close
-Logic that is ran when the claimable account needs to close it's algo balance to pay the ASA creator 0.2 ALGO.
-
-##### handle_pay
-Logic that is ran when the climaable account can pay the ASA creator 0.2 ALGO
+Initializes scartch variables
 
 ##### main
-Automatically approves app creation and rejects any OnComplete other than NoOp. Contains conditional logic to handle whether the claimable account should be closed or a regular payment should be made.
+Automatically approves app creation and rejects any OnComplete other than NoOp. Contains conditional logic to handle whether the claimable account should be closed or a regular payment should be made. Verifies the payment is being made to the ASA creator.
 
 ### Implementation
 
@@ -140,21 +134,21 @@ To send an ASA to an account that may or may not be opted in, the client sending
 
 To claim an ASA the following trasnaction group MUST be sent.
 
-1. Asset transfer
+1. Application Call
+   1. From: claimer
+   2. AppID: Mainnet ID or Testnet ID, depending on which network the trasnaction is taking place on
+   3. Accounts: claimable account
+   4. Assets: ASA being claimed
+2. Asset transfer
    1. From: claimable account
    2. To: claimer
    3. Amount: 0
    4. Close Asset To: claimer
-2. Pay transaction
+3. Pay transaction
    1. From: claimable account
    2. To: ASA creator
    3. Amount: 2*MBR
    4. Close Asset To: Creator if claimable account balance is exactly 2*MBR. Otherwise zero address
-3. Application Call
-   1. From: claimer
-   2. AppID: Mainnet ID or Testnet ID, depending on which network the trasnaction is taking place on
-   3. Accounts: claimable account, ASA creator
-   4. Assets: ASA being claimed
 
 ## Rationale
 
