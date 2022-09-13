@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../TEALrb/lib/tealrb'
+require 'tealrb'
 class ClaimablePaymentApp < TEALrb::Contract
   subroutine :init_scratch do
     $payment_txn = Gtxns[Txn.group_index + 2]

@@ -27,7 +27,7 @@ const client = new algosdk.Algodv2(
 )
 
 const MIN_FEE = 1_000
-const APP_ID = 109774754
+const APP_ID = 109796311
 const MBR = 100_000
 
 async function sendAndWait(txns: Uint8Array[] | Uint8Array) {
