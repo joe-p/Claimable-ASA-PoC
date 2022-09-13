@@ -7,8 +7,6 @@ class ClaimablePaymentApp < TEALrb::Contract
 
     $axfer_txn = Gtxns[Txn.group_index + 1]
 
-    approve
-
     $asa_being_claimed = Assets[0]
 
     $lsig_account = Accounts[1]
