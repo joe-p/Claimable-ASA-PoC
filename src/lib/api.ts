@@ -27,7 +27,7 @@ const client = new algosdk.Algodv2(
 )
 
 const MIN_FEE = 1_000
-const APP_ID = 108024333
+const APP_ID = 109796311
 const MBR = 100_000
 
 async function sendAndWait(txns: Uint8Array[] | Uint8Array) {
@@ -43,11 +43,11 @@ async function compileProgram(programSource: string) {
   const program = encoder.encode(programSource)
   const result = await client.compile(program).sourcemap(true).do()
   const compiledBytes = new Uint8Array(Buffer.from(result.result, 'base64'))
-  /*
+  
   const sourceMap = new algosdk.SourceMap(result.sourcemap)
   let lineIndex = 0
   programSource.split("\n").forEach(line =>  { console.log(`${lineIndex} | ${sourceMap.getPcsForLine(lineIndex)}: ${line}`); lineIndex++ })
-  */
+  
   return compiledBytes
 }
 
@@ -55,11 +55,12 @@ export async function getClaimableLogicSig(address: string) {
   const response = await fetch('/claimable_lsig.teal')
   const tealTemplate = await response.text()
   let teal = tealTemplate
-
-  //const appBytes = (await client.getApplicationByID(APP_ID).do()).params['approval-program']
-  //teal = teal.replaceAll('$APP_BYTES', `byte b64 ${appBytes}`)
   teal = teal.replaceAll('$RECEIVER_ADDRESS', `addr ${address}`)
   teal = teal.replaceAll('$APP_ID', `int ${APP_ID}`)
+
+  const appResponse = await fetch('/claim_app.teal')
+  const appTeal = await appResponse.text()
+  await compileProgram(appTeal)
 
   return new algosdk.LogicSigAccount(await compileProgram(teal))
 }
@@ -180,22 +181,23 @@ export async function claimASA(myAlgo: MyAlgoConnect, assetIndex: number, claime
     from: claimer,
     suggestedParams: { ...suggestedParams, fee: (suggestedParams.fee | MIN_FEE) * 3, flatFee: true },
     appIndex: APP_ID,
-    accounts: [lsig.address(), creator],
+    accounts: [lsig.address()],
     foreignAssets: [assetIndex]
   })
 
-  const gtxns = algosdk.assignGroupID([optInTxn, axferTxn, payTxn, appTxn])
+  const gtxns = algosdk.assignGroupID([optInTxn, appTxn, axferTxn, payTxn])
 
-  const myAlgoTxns = [gtxns[0].toByte(), gtxns[3].toByte()]
+  const myAlgoTxns = [gtxns[0].toByte(), gtxns[1].toByte()]
   const signedMyAlgoTxns = await myAlgo.signTransaction(myAlgoTxns)
 
   const sTxns = [
     signedMyAlgoTxns[0],
-    algosdk.signLogicSigTransactionObject(gtxns[1], lsig),
-    algosdk.signLogicSigTransactionObject(gtxns[2], lsig),
     signedMyAlgoTxns[1],
+    algosdk.signLogicSigTransactionObject(gtxns[2], lsig),
+    algosdk.signLogicSigTransactionObject(gtxns[3], lsig),
   ]
 
+  console.log(sTxns.map(t => algosdk.decodeSignedTransaction(t.blob)))
   const response = await sendAndWait(sTxns.map(t => t.blob))
   return { 
     groupId: gtxns[0].group?.toString('base64'),
