@@ -181,7 +181,7 @@ export async function claimASA(myAlgo: MyAlgoConnect, assetIndex: number, claime
     from: claimer,
     suggestedParams: { ...suggestedParams, fee: (suggestedParams.fee | MIN_FEE) * 3, flatFee: true },
     appIndex: APP_ID,
-    accounts: [lsig.address(), creator],
+    accounts: [lsig.address()],
     foreignAssets: [assetIndex]
   })
 
