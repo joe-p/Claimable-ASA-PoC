@@ -13,6 +13,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  IconButton,
   Link,
   Stack,
   SvgIcon,
@@ -41,6 +42,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import CallMadeIcon from "@mui/icons-material/CallMade"
 import RefreshIcon from "@mui/icons-material/Refresh"
 import { ReactComponent as AlgoIconImported } from "./assets/algo.svg"
+import GitHubIcon from "@mui/icons-material/GitHub"
 import diagram from "./assets/diagram.png"
 
 const ZERO_ADDRESS =
@@ -261,6 +263,16 @@ function App() {
         <AppBar position="fixed" color="inherit" sx={{ mb: 2 }}>
           <Toolbar>
             <Typography variant="h6">Claimable ASAs Demo</Typography>
+            <IconButton
+              aria-label="Github"
+              color="inherit"
+              component={Link}
+              href={"https://github.com/joe-p/Claimable-ASA-PoC"}
+              target={"_blank"}
+              rel="noopener noreferrer"
+            >
+              <GitHubIcon />
+            </IconButton>
             <Box sx={{ flexGrow: 1 }} />
             {connectedAccount ? (
               <LoadingButton onClick={refreshAssets} loading={waiting}>
@@ -284,16 +296,29 @@ function App() {
             aria-controls="panel1a-content"
             id="panel1a-header"
           >
-            <Typography>Learn about "Claimable ASAs"</Typography>
+            <Typography>Learn about ARC-0012 "Claimable ASAs"</Typography>
           </AccordionSummary>
           <AccordionDetails>
-            <Typography sx={{ mb: 1 }}>
+            <Link
+              variant="h6"
+              href="https://github.com/algorandfoundation/ARCs/blob/main/ARCs/arc-0012.md"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              ARC-0012 Proposal
+            </Link>
+            <Typography sx={{ my: 1 }}>
               Claimable ASAs is a proposed standard for sending assets to
               accounts which have not opted in to the ASA by leveraging a
               special TEAL smart signature contract account. The smart signature
               code can accept incoming ASAs and then only allow the intended
-              recipient to claim the ASA at their convenience. Learn more about
-              the proposal and provide feedback in the Algorand forum.
+              recipient to claim the ASA at their convenience.
+            </Typography>
+            <Typography sx={{ my: 1 }}>
+              If the receiver is set to the global Zero Address, this tool can
+              be used to "burn" the quantity of the ASA being transferred by
+              sending it to the UN-claimable ASAs account corresponding to the
+              Zero Address.
             </Typography>
             <img
               src={diagram}
