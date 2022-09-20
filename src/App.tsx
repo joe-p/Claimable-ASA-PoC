@@ -43,6 +43,9 @@ import RefreshIcon from "@mui/icons-material/Refresh"
 import { ReactComponent as AlgoIconImported } from "./assets/algo.svg"
 import diagram from "./assets/diagram.png"
 
+const ZERO_ADDRESS =
+  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"
+
 function App() {
   const [myAlgoConnector, setMyAlgoConnector] = useState(new MyAlgoConnect())
   const [claimablesAccount, setClaimablesAccount] = useState("")
@@ -396,6 +399,8 @@ function App() {
               theirAccount && assetToSend.id
                 ? theirOptedInStatus
                   ? `Account is opted in to ASA ${assetToSend?.id}`
+                  : theirAccount === ZERO_ADDRESS
+                  ? `WARNING: Permanently burning by sending to UN-claimable ASAs account of the Zero Address`
                   : `Diverting to their pending claimables account: ${theirClaimablesAccount}`
                 : null
             }
@@ -424,9 +429,14 @@ function App() {
           </LoadingButton>
           <Typography sx={{ my: 1 }}>
             Send the selected ASA to an account, automatically diverting to
-            their claimables account if they have not opted in to the ASA
+            their claimables account if they have not opted in to the ASA.
           </Typography>
         </Stack>
+        <Typography sx={{ my: 1 }}>
+          Note that a quantity of ASA can be "burned" irreversibly by sending it
+          to the global Zero Address:
+          AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ.
+        </Typography>
       </Container>
       <Dialog
         open={alertOpen}
@@ -438,10 +448,7 @@ function App() {
         <DialogContent>
           <DialogContentText id="alert-dialog-description">
             <Typography>Transaction(s) confirmed in round </Typography>
-            <Typography>
-              {" "}
-              {confirmation.response["confirmed-round"]}!
-            </Typography>
+            <Typography>{confirmation.response["confirmed-round"]}!</Typography>
           </DialogContentText>
           {confirmation?.txId || confirmation?.groupId ? (
             <Link
