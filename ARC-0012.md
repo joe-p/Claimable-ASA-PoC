@@ -47,7 +47,7 @@ An application operator who wants to on-board users to their game or business ma
 
 #### Token Burning
 
-Similarly to any regular account, the global Zero Address also has a corresponding claimable ASAs account to which one can send any ASA to effectively burn it, rendering it lost forever.  Although it is not possible to send an ASA directly to the Zero Address, as no one controls it to sign any opt in transactions, the claimable ASAs account for Zero Address can similarly never have any ASA claimed out of it.  Therefore, the associated smart signature account becomes a special "un-claimable" ASAs account to which anyone can irreversibly take a quantity of any ASA out of criculation forever.
+Similarly to any regular account, the global Zero Address also has a corresponding claimable ASAs account to which one can send a quantity of any ASA to effectively "burn" it, rendering it lost forever.  No one controls the Zero Address, so while it cannot opt into any ASA to receive it directly, it also cannot make any claims from its corresponding claimable ASAs account, which thus functions as an UN-claimable ASAs purgatory account.  By utilizing this approach, anyone can verifiably and irreversibly take a quantity of any ASA out of circulation forever.
 
 ## Specification
 
@@ -166,18 +166,26 @@ This design was created to offer a standard mechanism by which wallets, explorer
 
 ## Reference Implementation
 
-To demonstrate how to interact with a claimable ASAs account, a simple application has been deployed here: [https://claimable-asa-demo.netlify.app/](https://claimable-asa-demo.netlify.app/).
+### Source code
+[https://github.com/joe-p/Claimable-ASA-PoC](https://github.com/joe-p/Claimable-ASA-PoC)
 
-The demo site is a client side-only React single page application with MyAlgo wallet integration that provides the following functions:
+### Live demo on Testnet
+[https://claimable-asa-demo.netlify.app/](https://claimable-asa-demo.netlify.app/).
 
-1. Displaying a connected "main" account's current assets
-2. Deriving the connected account's *associated claimable ASAs account* using the standard TEAL smart signature code
-3. Displaying any ASAs in the claimable ASAs account which can be claimed by the connected "main" account
-4. A utility to send ASAs from the connected account to an intended receiver, dynamically diverting the transfer to the appropriate claimable ASAs account if the receiver is not opted in to the ASA.
+### Overview
+
+To demonstate how to interact with a claimable ASAs account, a simple application has been created with MyAlgo integration and the following capabilities:
+
+1. Displaying a connected wallet account's current assets
+2. Deriving the connected account's *corresponding claimable ASAs account* using the standard TEAL smart signature code
+3. Displaying any ASAs in the claimable ASAs account with the ability to claim them into the connected wallet account
+4. A smart sending tool to transfer ASAs from the connected wallet account to an intended receiver, dynamically diverting the transfer to the receiver's corresponding claimable ASAs account if the receiver is not opted in to the ASA.*
 
 With this toolset it is possible to view one's own claimable ASAs account, claim ASAs from it, and automatically utilize other people's claimable ASAs account to send them any ASA.
 
-Additionally, note that by entering the global Zero Address `AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ` as the intended recipient, the app will automatically re-route the ASA to the unique "un-claimable" ASAs account from which it can never be claimed by anyone, rendering the transferred quantity permanently burned.
+### Burning Tokens
+
+Additionally, the smart sending tool can be used to burn ASAs by entering the global Zero Address `AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ` as the intended recipient.  The app will automatically re-route the ASA to the unique "UN-claimable" ASAs account corresponding to the Zero Address.  An ASA sent here can never be claimed by anyone, rendering the transferred quantity permanently irretrievable and effectively "burned" in a verifiable way.
 
 ## Backwards Compatibility
 
