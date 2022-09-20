@@ -20,9 +20,9 @@ A standard for TEAL contract accounts to serve as a pending claimable ASAs accou
 
 The goal of this standard is to establish a standard in the Algorand ecosytem by which ASAs can be sent to an intended receiver even if their account is not opted in to the ASA.  
 
-TEAL stateless smart signature contract accounts corresponding to any Algorand account serve as a pending claimable ASAs account with logic that permits opting into incoming ASAs and subsequently for only the intended receiver to claim the ASA into their normal account.  A single associated stateful application on the network enables a cost--the minimum balance requirement to create an account and hold an ASA--to be refunded to the ASA creator when the asset is claimed by the receiver.
+TEAL stateless smart signature contract accounts corresponding to any Algorand account serve as a claimable ASAs account with logic that permits opting into incoming ASAs and subsequently for only the intended receiver to claim the ASA into their normal account.  A single associated stateful application on the network enables a cost--the minimum balance requirement to create an account and hold an ASA--to be refunded to the ASA creator when the asset is claimed by the receiver.
 
-If integrated into ecosystem technologies including wallets, epxlorers, and dApps, this standard can provide enhanced capabilities around ASAs which are otherwise strictly bound at the protocol level to require opting in to be received.
+If integrated into ecosystem technologies including wallets, epxlorers, and dApps, this standard can provide enhanced capabilities around ASAs which are otherwise strictly bound at the protocol level to require opting in to be received.  This also enables the ability to "burn" ASAs by sending them to the claimable ASAs account associated with the global Zero Address.
 
 ## Motivation
 
@@ -44,6 +44,10 @@ An ASA creator who wants to send their asset to a set of accounts faces the chal
 #### Reducing New User On-boarding Friction
 
 An application operator who wants to on-board users to their game or business may want to reduce the friction of getting people started by decoupling their application on-boarding process from the process of funding a non-custodial Algorand wallet, if users are wholly new to the Algorand ecosystem.  As long as the receiver's address is known, an ASA can be sent to them ahead of them having ALGOs in their wallet to cover the minimum balance requirement and opt in to the asset.
+
+#### Token Burning
+
+Similarly to any regular account, the global Zero Address also has a corresponding claimable ASAs account to which one can send any ASA to effectively burn it, rendering it lost forever.  Although it is not possible to send an ASA directly to the Zero Address, as no one controls it to sign any opt in transactions, the claimable ASAs account for Zero Address can similarly never have any ASA claimed out of it.  Therefore, the associated smart signature account becomes a special "un-claimable" ASAs account to which anyone can irreversibly take a quantity of any ASA out of criculation forever.
 
 ## Specification
 
@@ -172,6 +176,8 @@ The demo site is a client side-only React single page application with MyAlgo wa
 4. A utility to send ASAs from the connected account to an intended receiver, dynamically diverting the transfer to the appropriate claimable ASAs account if the receiver is not opted in to the ASA.
 
 With this toolset it is possible to view one's own claimable ASAs account, claim ASAs from it, and automatically utilize other people's claimable ASAs account to send them any ASA.
+
+Additionally, note that by entering the global Zero Address `AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ` as the intended recipient, the app will automatically re-route the ASA to the unique "un-claimable" ASAs account from which it can never be claimed by anyone, rendering the transferred quantity permanently burned.
 
 ## Backwards Compatibility
 
